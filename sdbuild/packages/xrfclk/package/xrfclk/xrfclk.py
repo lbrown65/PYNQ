@@ -45,6 +45,8 @@ if board == "ZCU111":
     _iic_channel = 12
 elif board == "RFSoC2x2":
     _iic_channel = 7
+elif board == "ZCU208":
+    _iic_channel = 11
 else:
     raise ValueError("Board {} is not supported.".format(board))
 
@@ -53,13 +55,15 @@ _ffi = cffi.FFI()
 _ffi.cdef("int clearInt(int IicNum);"
           "int writeLmx2594Regs(int IicNum, unsigned int RegVals[113]);"
           "int writeLmk04208Regs(int IicNum, unsigned int RegVals[26]);"
-          "int writeLmk04832Regs(int IicNum, unsigned int RegVals[125]);")
+          "int writeLmk04832Regs(int IicNum, unsigned int RegVals[125]);"
+          "int writeLMK04828BRegs(int IicNum, unsigned int RegVals[136]")
 _lib = _ffi.dlopen(os.path.join(os.path.dirname(__file__), 'libxrfclk.so'))
 
 
 _lmx2594Config = defaultdict(list)
 _lmk04208Config = defaultdict(list)
 _lmk04832Config = defaultdict(list)
+_lmk04828BConfig = defaultdict(list)
 
 
 def _safe_wrapper(name, *args, **kwargs):
@@ -106,6 +110,19 @@ def write_lmk04832_regs(reg_vals):
     """
     _safe_wrapper("writeLmk04832Regs", _iic_channel, reg_vals)
 
+def write_lmk04828B_regs(reg_vals):
+    """Write values to the LMK04828B registers.
+
+    This is an internal function.
+
+    Parameters
+    ----------
+    reg_vals: list
+        A list of 136 24-bit register values.
+
+    """
+    _safe_wrapper("writeLmk04828BRegs", _iic_channel, reg_vals)
+
 
 def write_lmx2594_regs(reg_vals):
     """Write values to the LMX2594 registers.
@@ -142,6 +159,11 @@ def set_ref_clks(lmk_freq=122.88, lmx_freq=409.6):
     elif board == "RFSoC2x2":
         read_tics_output()
         set_lmk04832_clks(lmk_freq)
+        set_lmx2594_clks(lmx_freq)
+
+    elif board == "ZCU208":
+        read_tics_output()
+        set_lmk04828B_clks(lmk_freq)
         set_lmx2594_clks(lmx_freq)
 
 
@@ -207,3 +229,17 @@ def set_lmk04208_clks(lmk_freq):
         raise RuntimeError("Frequency {} MHz is not valid.".format(lmx_freq))
     else:
         write_lmk04208_regs(_lmk04208Config[lmk_freq])
+
+def set_lmk04828B_clks(lmk_freq):
+    """Set LMK chip frequency.
+
+    Parameters
+    ----------
+    lmk_freq: float
+        The frequency for the LMK clock generation chip.
+
+    """
+    if lmk_freq not in _lmk04828BConfig:
+        raise RuntimeError("Frequency {} MHz is not valid.".format(lmx_freq))
+    else:
+        write_lmk042828B_regs(_lmk04828BConfig[lmk_freq])

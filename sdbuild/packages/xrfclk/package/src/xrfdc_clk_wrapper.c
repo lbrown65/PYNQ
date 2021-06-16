@@ -53,7 +53,17 @@ int writeLmk04832Regs(int IicNum, unsigned int RegVals[125]) {
 }
 #endif /* BOARD_RFSoC2x2 */
 
-#if defined(BOARD_RFSoC2x2) || defined(BOARD_ZCU111)
+#ifdef BOARD_ZCU208
+int writeLmk04828BRegs(int IicNum, unsigned int RegVals[136]) {
+  unsigned int LMK04828B_CKin[1][136];
+  for (int i = 0; i < 136; i++)
+    LMK04828B_CKin[0][i] = RegVals[i];
+  LMK04828BClockConfig(IicNum, LMK04828B_CKin);
+  return 0;
+}
+#endif /* BOARD_ZCU208 */
+
+#if defined(BOARD_RFSoC2x2) || defined(BOARD_ZCU111) || defined(BOARD_ZCU208)
 int writeLmx2594Regs(int IicNum, unsigned int RegVals[113]) {
     int XIicDevFile;
     char XIicDevFilename[20];
@@ -87,4 +97,4 @@ int clearInt(int IicNum){
     close(XIicDevFile);
     return 0;
 }
-#endif /* BOARD_RFSoC2x2 || BOARD_ZCU111 */
+#endif /* BOARD_RFSoC2x2 || BOARD_ZCU111 || BOARD_ZCU208 */

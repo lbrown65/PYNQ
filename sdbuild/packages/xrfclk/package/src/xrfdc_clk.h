@@ -52,4 +52,15 @@ int SC18IS602ClearInt(int XIicDevFile);
 #define I2C_MUX_ADDR	    0x74
 #endif /* BOARD_ZCU111 */
 
+#ifdef BOARD_ZCU208
+void LMX2594ClockConfig(int XIicBus, int XFrequency);
+void Lmx2594Updatei2c(int XIicDevFile, unsigned int r[113]);
+void LMK04828BClockConfig(int XIicBus, unsigned int LMK04828B_CKin[1][136]);
+int SC18IS602ClearInt(int XIicDevFile);
+#define LMX_FUNCTION_ID 	
+#define LMK_FUNCTION_ID 	
+#define I2C_SPI_ADDR 	    0x2F
+#define I2C_MUX_ADDR	    0x74
+#endif /* BOARD_ZCU208 */
+
 #endif /* _RFDC_CLK_H_ */

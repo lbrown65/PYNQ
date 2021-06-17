@@ -46,26 +46,12 @@ this Software without prior written authorization from Xilinx.
 #define I2C_SMBUS_WRITE	0
 #define I2C_SMBUS_I2C_BLOCK  5
 
-#else
-#include "xparameters.h"
-#include "sleep.h"
-#include "xuartps.h"
-#include "xiicps.h"
-#include "xil_printf.h"
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-XIicPs Iic; /* Instance of the IIC Device */
-
-#endif
 #include "xrfdc_clk.h"
 
 union i2c_smbus_data {
 	unsigned char byte;
 	unsigned char block[XIIC_BLOCK_MAX+1];
 };
-
-#ifndef __BAREMETAL__
 
 static inline void IicWriteData(int XIicDevFile, unsigned char command,
 								unsigned char length,
@@ -96,5 +82,3 @@ int SC18IS602ClearInt(int XIicDevFile)
     ioctl(XIicDevFile,I2C_SMBUS,&args);
     return 0;
 }
-
-#endif

@@ -31,29 +31,22 @@
 #ifndef __XRFCLK_H_
 #define __XRFCLK_H_
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #define RFCLK_VERSION "1.4"
 
 #if !defined(XPS_BOARD_ZCU111) && !defined(XPS_BOARD_ZCU216)
 #define XPS_BOARD_ZCU216
 #endif
 
-#if defined __BAREMETAL__
-#include "xil_types.h"
-#else
 typedef unsigned char u8;
 typedef unsigned int u32;
 typedef int s32;
 #define XST_SUCCESS 0L
 #define XST_FAILURE 1L
-#endif
 
 #define RFCLK_LMX2594_1 0 /* I0 on MUX and SS3 on Bridge */
 #define RFCLK_LMX2594_2 1 /* I1 on MUX and SS2 on Bridge */
 #define RFCLK_LMK 2 /* I2 on MUX and SS1 on Bridge */
+
 #ifdef XPS_BOARD_ZCU111
 #define RFCLK_LMX2594_3 3 /* I3 on MUX and SS0 on Bridge */
 #define RFCLK_CHIP_NUM 4
@@ -74,11 +67,13 @@ typedef int s32;
 
 u32 XRFClk_WriteReg(u32 ChipId, u32 Data);
 u32 XRFClk_ReadReg(u32 ChipId, u32 *Data);
-#if defined __BAREMETAL__ || defined XPS_BOARD_ZCU111
+
+#if defined XPS_BOARD_ZCU111
 u32 XRFClk_Init();
 #else
 u32 XRFClk_Init(int GpioId);
 #endif
+
 void XRFClk_Close();
 u32 XRFClk_ResetChip(u32 ChipId);
 u32 XRFClk_SetConfigOnOneChipFromConfigId(u32 ChipId, u32 ConfigId);
@@ -90,14 +85,11 @@ u32 XRFClk_SetConfigOnAllChipsFromConfigId(u32 ConfigId_LMK, u32 ConfigId_RF1,
 #else
 					   u32 ConfigId_RF2);
 #endif
+
 u32 XRFClk_ControlOutputPortLMK(u32 PortId, u32 state);
 u32 XRFClk_ConfigOutputDividerAndMUXOnLMK(u32 PortId, u32 DCLKoutX_DIV,
 					  u32 DCLKoutX_MUX, u32 SDCLKoutY_MUX,
 					  u32 SYSREF_DIV);
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif
 /** @} */

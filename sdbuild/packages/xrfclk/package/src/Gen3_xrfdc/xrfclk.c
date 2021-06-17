@@ -883,6 +883,7 @@ void XRFClk_Close(void)
 {
 #ifdef XPS_BOARD_ZCU111
 	close(FD_I2C0);
+#endif
 	close(FD_BRIDGE);
 	close(FD_I2C1);
 #endif

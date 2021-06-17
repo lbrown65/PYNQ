@@ -47,7 +47,6 @@ this Software without prior written authorization from Xilinx.
 *****************************************************************************/
 
 /***************************** Include Files ********************************/
-#ifndef __BAREMETAL__
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -69,18 +68,6 @@ this Software without prior written authorization from Xilinx.
 #define I2C_SMBUS_I2C_BYTE   1
 #define I2C_SMBUS_I2C_BLOCK  6
 
-#else
-#include "xparameters.h"
-#include "sleep.h"
-#include "xuartps.h"
-#include "xiicps.h"
-#include "xil_printf.h"
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-XIicPs Iic; /* Instance of the IIC Device */
-
-#endif
 #include "xrfdc_clk.h"
 
 #define LMK04832_count 125

@@ -27,40 +27,38 @@ this Software without prior written authorization from Xilinx.
 #ifndef _RFDC_CLK_H_
 #define _RFDC_CLK_H_
 
-#ifdef BOARD_RFSoC2x2
 void LMX2594ClockConfig(int XIicBus, int XFrequency);
 void Lmx2594Updatei2c(int XIicDevFile, unsigned int r[113]);
+int SC18IS602ClearInt(int XIicDevFile);
+
+#ifdef BOARD_RFSoC2x2
 void LMK04832ClockConfig(int XIicBus, unsigned int LMK04832_CKin[1][125]);
 void LMK04832DebugConfig(int XIicBus, unsigned int LMK04832_CKin[1][125]);
-int SC18IS602ClearInt(int XIicDevFile);
 #define LMX_FUNCTION_ID 	0x3
 #define LMK_FUNCTION_ID 	0x8
 #define NC_FUNCTION_ID		0x4
 #define I2C_SPI_ADDR 	    0x2A
 #define I2C_MUX_ADDR	    0x71
+#define LMK04832_count 125
 #endif /* BOARD_RFSoC2x2 */
 
 
 #ifdef BOARD_ZCU111
-void LMX2594ClockConfig(int XIicBus, int XFrequency);
-void Lmx2594Updatei2c(int XIicDevFile, unsigned int r[113]);
 void LMK04208ClockConfig(int XIicBus, unsigned int LMK04208_CKin[1][26]);
-int SC18IS602ClearInt(int XIicDevFile);
 #define LMX_FUNCTION_ID 	0xd
 #define LMK_FUNCTION_ID 	0x2
 #define I2C_SPI_ADDR 	    0x2F
 #define I2C_MUX_ADDR	    0x74
+#define LMK04832_count 26
 #endif /* BOARD_ZCU111 */
 
 #ifdef BOARD_ZCU208
-void LMX2594ClockConfig(int XIicBus, int XFrequency);
-void Lmx2594Updatei2c(int XIicDevFile, unsigned int r[113]);
 void LMK04828BClockConfig(int XIicBus, unsigned int LMK04828B_CKin[1][136]);
-int SC18IS602ClearInt(int XIicDevFile);
 #define LMX_FUNCTION_ID 	
-#define LMK_FUNCTION_ID 	
+#define LMK_FUNCTION_ID 	0x2
 #define I2C_SPI_ADDR 	    0x2F
 #define I2C_MUX_ADDR	    0x74
+#define LMK04832_count 136
 #endif /* BOARD_ZCU208 */
 
 #endif /* _RFDC_CLK_H_ */

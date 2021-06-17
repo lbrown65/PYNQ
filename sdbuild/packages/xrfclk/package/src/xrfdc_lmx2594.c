@@ -52,7 +52,6 @@ this Software without prior written authorization from Xilinx.
 *****************************************************************************/
 
 /***************************** Include Files ********************************/
-#ifndef __BAREMETAL__
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -72,18 +71,6 @@ this Software without prior written authorization from Xilinx.
 #define I2C_SMBUS_WRITE	0
 #define I2C_SMBUS_I2C_BLOCK  6
 
-#else
-#include "xparameters.h"
-#include "sleep.h"
-#include "xuartps.h"
-#include "xiicps.h"
-#include "xil_printf.h"
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-XIicPs Iic; /* Instance of the IIC Device */
-
-#endif /* __BAREMETAL__ */
 #include "xrfdc_clk.h"
 
 #define LMX2594_A_count 113
@@ -508,7 +495,6 @@ XClockingLmx ClockingLmx[27] = {
 	475314, 444418, 327880, 264771, 198210, 132352, 67592, 9372}}
 };
 
-#ifndef __BAREMETAL__
 static inline void IicWriteData(int XIicDevFile, unsigned char command,
                                                    unsigned char length,
                                                    const unsigned char *values)
@@ -567,6 +553,8 @@ void Lmx2594Updatei2c(int XIicDevFile,unsigned int  r[LMX2594_A_count])
 	val = tx_array[0] | (tx_array[1] << 8) | (tx_array[2] << 16 ) ;
 	IicWriteData(XIicDevFile, LMX_FUNCTION_ID, 3, tx_array);
 }
+
+
 static int Lmx2594UpdateFreq(int XIicDevFile,int  XFrequency)
 {
 	int XFreqIndex=0;
@@ -590,7 +578,6 @@ static int Lmx2594UpdateFreq(int XIicDevFile,int  XFrequency)
 	Lmx2594Updatei2c( XIicDevFile, ClockingLmx[0].LMX2594_A);
 	return 0;
 }
-#endif
 
 /****************************************************************************/
 /**
@@ -598,9 +585,8 @@ static int Lmx2594UpdateFreq(int XIicDevFile,int  XFrequency)
 * This function is used to configure LMX2594
 *
 * @param	XIicBus is the Controller Id/Bus number.
-*           For Baremetal it is the I2C controller Id to which LMX2594 device
-*           is connected.
 *           For Linux it is the Bus Id to which LMX2594 device is connected.
+*
 * @param	XFrequency is the frequency used to configure the LMX2594.
 *
 * @return
@@ -611,196 +597,6 @@ static int Lmx2594UpdateFreq(int XIicDevFile,int  XFrequency)
 ****************************************************************************/
 void LMX2594ClockConfig(int XIicBus, int XFrequency)
 {
-#ifdef __BAREMETAL__
-	XIicPs_Config *Config_iic;
-	int Status;
-	u8 tx_array[10];
-	u8 rx_array[10];
-	u32 ClkRate = 100000;
-	int Index;
-	int freq_index=0;
-	int XFreqIndex;
-
-	for(XFreqIndex=0 ; XFreqIndex<20; XFreqIndex++) {
-		if (ClockingLmx[XFreqIndex].XFrequency == XFrequency) {
-			freq_index =XFreqIndex;
-		}
-	}
-
-	Config_iic = XIicPs_LookupConfig(XIicBus);
-	if (NULL == Config_iic) {
-		return;
-	}
-
-	Status = XIicPs_CfgInitialize(&Iic, Config_iic, Config_iic->BaseAddress);
-	if (Status != XST_SUCCESS) {
-		return;
-	}
-
-	Status = XIicPs_SetSClk(&Iic, ClkRate);
-	if (Status != XST_SUCCESS) {
-		return;
-	}
-
-	/*
-	 * 0x02-enable Super clock module 0x20- analog I2C power module slaves
-	 */
-	tx_array[0] = 0x20;
-	XIicPs_MasterSendPolled(&Iic, tx_array, 0x01, I2C_MUX_ADDR);
-	while (XIicPs_BusIsBusy(&Iic))
-		;
-	usleep(25000);
-
-	/*
-	 * Receive the Data.
-	 */
-	Status = XIicPs_MasterRecvPolled(&Iic, rx_array, 1, I2C_MUX_ADDR);
-	if (Status != XST_SUCCESS) {
-		return;
-	}
-
-	/*
-	 * Wait until bus is idle to start another transfer.
-	 */
-	while (XIicPs_BusIsBusy(&Iic))
-		;
-
-	/*
-	 * Function Id.
-	 */
-	tx_array[0] = 0xF0;
-	tx_array[1] = LMX_FUNCTION_ID;
-	XIicPs_MasterSendPolled(&Iic, tx_array, 0x02, I2C_SPI_ADDR);
-	while (XIicPs_BusIsBusy(&Iic))
-		;
-	usleep(25000);
-
-	/*
-	 * Receive the Data.
-	 */
-	Status = XIicPs_MasterRecvPolled(&Iic, rx_array,
-			2, I2C_SPI_ADDR);
-	if (Status != XST_SUCCESS) {
-		return;
-	}
-
-	/*
-	 * Wait until bus is idle to start another transfer.
-	 */
-	while (XIicPs_BusIsBusy(&Iic));
-
-	tx_array[0]=0x08;
-	tx_array[3]=(u8) (0x00);
-	tx_array[2]=(u8) (0x00);
-	tx_array[1]=(u8) (0x20);
-	Status = XIicPs_MasterSendPolled(&Iic,tx_array,0x04,I2C_SPI_ADDR);
-	while (XIicPs_BusIsBusy(&Iic));
-
-	sleep(2);
-
-	tx_array[0]=0x08;
-	tx_array[3]=(u8) (0x00);
-	tx_array[2]=(u8) (0x00);
-	tx_array[1]=(u8) (0x00);
-	Status = XIicPs_MasterSendPolled(&Iic,tx_array,0x04,I2C_SPI_ADDR);
-	while (XIicPs_BusIsBusy(&Iic));
-
-	sleep(2);
-	for (Index = 0; Index < LMX2594_A_count; Index++) {
-		tx_array[0] = 0x08;
-		tx_array[3] = (u8) (ClockingLmx[freq_index].LMX2594_A[Index]) & (0xFF);
-		tx_array[2] = (u8) (ClockingLmx[freq_index].LMX2594_A[Index] >> 8) & (0xFF);
-		tx_array[1] = (u8) (ClockingLmx[freq_index].LMX2594_A[Index] >> 16) & (0xFF);
-		Status = XIicPs_MasterSendPolled(&Iic, tx_array, 0x04, I2C_SPI_ADDR);
-		while (XIicPs_BusIsBusy(&Iic))
-			;
-		usleep(25000);
-
-	}
-
-	tx_array[0] = 0x08;
-	tx_array[3] = (u8) (ClockingLmx[freq_index].LMX2594_A[112]) & (0xFF);
-	tx_array[2] = (u8) (ClockingLmx[freq_index].LMX2594_A[112] >> 8) & (0xFF);
-	tx_array[1] = (u8) (ClockingLmx[freq_index].LMX2594_A[112] >> 16) & (0xFF);
-	Status = XIicPs_MasterSendPolled(&Iic, tx_array, 0x04, I2C_SPI_ADDR);
-	while (XIicPs_BusIsBusy(&Iic))
-		;
-	usleep(25000);
-
-	tx_array[0]=0x04;
-	tx_array[3]=(u8) (0x00);
-	tx_array[2]=(u8) (0x00);
-	tx_array[1]=(u8) (0x02);
-	Status = XIicPs_MasterSendPolled(&Iic,tx_array,0x04,I2C_SPI_ADDR);
-	while (XIicPs_BusIsBusy(&Iic));
-
-	sleep(2);
-	tx_array[0]=0x04;
-	tx_array[3]=(u8) (0x00);
-	tx_array[2]=(u8) (0x00);
-	tx_array[1]=(u8) (0x00);
-	Status = XIicPs_MasterSendPolled(&Iic,tx_array,0x04,I2C_SPI_ADDR);
-	while (XIicPs_BusIsBusy(&Iic));
-
-	sleep(2);
-	for (Index = 0; Index < LMX2594_A_count; Index++) {
-		tx_array[0] = 0x04;
-		tx_array[3] = (u8) (ClockingLmx[freq_index].LMX2594_A[Index]) & (0xFF);
-		tx_array[2] = (u8) (ClockingLmx[freq_index].LMX2594_A[Index] >> 8) & (0xFF);
-		tx_array[1] = (u8) (ClockingLmx[freq_index].LMX2594_A[Index] >> 16) & (0xFF);
-		Status = XIicPs_MasterSendPolled(&Iic, tx_array, 0x04, I2C_SPI_ADDR);
-		while (XIicPs_BusIsBusy(&Iic))
-			;
-		usleep(25000);
-
-	}
-
-	tx_array[0]=0x04;
-	tx_array[3] = (u8) (ClockingLmx[freq_index].LMX2594_A[112]) & (0xFF);
-	tx_array[2] = (u8) (ClockingLmx[freq_index].LMX2594_A[112] >> 8) & (0xFF);
-	tx_array[1] = (u8) (ClockingLmx[freq_index].LMX2594_A[112] >> 16) & (0xFF);
-	Status = XIicPs_MasterSendPolled(&Iic, tx_array, 0x04, I2C_SPI_ADDR);
-	while (XIicPs_BusIsBusy(&Iic))
-		;
-	usleep(25000);
-
-	tx_array[0]=0x01;
-	tx_array[3]=(u8) (0x00);
-	tx_array[2]=(u8) (0x00);
-	tx_array[1]=(u8) (0x02);
-	Status = XIicPs_MasterSendPolled(&Iic, tx_array, 0x04, I2C_SPI_ADDR);
-	while (XIicPs_BusIsBusy(&Iic));
-	sleep(2);
-
-	tx_array[0]=0x01;
-	tx_array[3]=(u8) (0x00);
-	tx_array[2]=(u8) (0x00);
-	tx_array[1]=(u8) (0x00);
-	Status = XIicPs_MasterSendPolled(&Iic, tx_array, 0x04, I2C_SPI_ADDR);
-	while (XIicPs_BusIsBusy(&Iic));
-	sleep(2);
-
-	for (Index = 0; Index < LMX2594_A_count; Index++) {
-		tx_array[0] = 0x01;
-		tx_array[3] = (u8) (ClockingLmx[freq_index].LMX2594_A[Index]) & (0xFF);
-		tx_array[2] = (u8) (ClockingLmx[freq_index].LMX2594_A[Index]>> 8) & (0xFF);
-		tx_array[1] = (u8) (ClockingLmx[freq_index].LMX2594_A[Index]>> 16) & (0xFF);
-		Status = XIicPs_MasterSendPolled(&Iic, tx_array, 0x04, I2C_SPI_ADDR);
-		while (XIicPs_BusIsBusy(&Iic))
-			;
-		usleep(25000);
-	}
-
-	tx_array[0] = 0x01;
-	tx_array[3] = (u8) (ClockingLmx[freq_index].LMX2594_A[112]) & (0xFF);
-	tx_array[2] = (u8) (ClockingLmx[freq_index].LMX2594_A[112] >> 8) & (0xFF);
-	tx_array[1] = (u8) (ClockingLmx[freq_index].LMX2594_A[112] >> 16) & (0xFF);
-	Status = XIicPs_MasterSendPolled(&Iic, tx_array, 0x04, I2C_SPI_ADDR);
-	while (XIicPs_BusIsBusy(&Iic))
-		;
-	usleep(25000);
-
-#else
 	int XIicDevFile;
 	char XIicDevFilename[20];
 
@@ -813,5 +609,4 @@ void LMX2594ClockConfig(int XIicBus, int XFrequency)
 	}
 
 	Lmx2594UpdateFreq(XIicDevFile, XFrequency);
-#endif
 }

@@ -50,7 +50,6 @@ this Software without prior written authorization from Xilinx.
 *****************************************************************************/
 
 /***************************** Include Files ********************************/
-#ifndef __BAREMETAL__
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -70,18 +69,6 @@ this Software without prior written authorization from Xilinx.
 #define I2C_SMBUS_WRITE	0
 #define I2C_SMBUS_I2C_BLOCK  6
 
-#else
-#include "xparameters.h"
-#include "sleep.h"
-#include "xuartps.h"
-#include "xiicps.h"
-#include "xil_printf.h"
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-XIicPs Iic; /* Instance of the IIC Device */
-
-#endif
 #include "xrfdc_clk.h"
 
 #define LMK04208_count 26
@@ -90,8 +77,6 @@ union i2c_smbus_data {
 	unsigned char byte;
 	unsigned char block[XIIC_BLOCK_MAX+1];
 };
-
-#ifndef __BAREMETAL__
 
 static inline void IicWriteData(int XIicDevFile, unsigned char command,
                                                    unsigned char length,
@@ -124,7 +109,6 @@ static int Lmk04208UpdateFreq(int XIicDevFile, unsigned int LMK04208_CKin[1][26]
 	}
 	return 0;
 }
-#endif
 
 /****************************************************************************/
 /**
@@ -145,93 +129,6 @@ static int Lmk04208UpdateFreq(int XIicDevFile, unsigned int LMK04208_CKin[1][26]
 ****************************************************************************/
 void LMK04208ClockConfig(int XIicBus, unsigned int LMK04208_CKin[1][26])
 {
-#ifdef __BAREMETAL__
-	XIicPs_Config *Config_iic;
-	int Status;
-	u8 tx_array[10];
-	u8 rx_array[10];
-	u32 ClkRate = 100000;
-	int Index;
-
-	Config_iic = XIicPs_LookupConfig(XIicBus);
-	if (NULL == Config_iic) {
-		return;
-	}
-
-	Status = XIicPs_CfgInitialize(&Iic, Config_iic, Config_iic->BaseAddress);
-	if (Status != XST_SUCCESS) {
-		return;
-	}
-
-	Status = XIicPs_SetSClk(&Iic, ClkRate);
-	if (Status != XST_SUCCESS) {
-		return;
-	}
-
-	/*
-	 * 0x02-enable Super clock module 0x20- analog I2C power module slaves
-	 */
-	tx_array[0] = 0x20;
-	XIicPs_MasterSendPolled(&Iic, tx_array, 0x01, I2C_MUX_ADDR);
-	while (XIicPs_BusIsBusy(&Iic))
-		;
-	usleep(25000);
-
-	/*
-	 * Receive the Data.
-	 */
-	Status = XIicPs_MasterRecvPolled(&Iic, rx_array, 1, I2C_MUX_ADDR);
-	if (Status != XST_SUCCESS) {
-		return;
-	}
-
-	/*
-	 * Wait until bus is idle to start another transfer.
-	 */
-	while (XIicPs_BusIsBusy(&Iic))
-		;
-
-
-	/*
-	 * Function Id.
-	 */
-	tx_array[0] = 0xF0;
-	tx_array[1] = LMK_FUNCTION_ID;
-	XIicPs_MasterSendPolled(&Iic, tx_array, 0x02, I2C_SPI_ADDR);
-	while (XIicPs_BusIsBusy(&Iic))
-		;
-	usleep(25000);
-
-	/*
-	 * Receive the Data.
-	 */
-	Status = XIicPs_MasterRecvPolled(&Iic, rx_array,
-			2, I2C_SPI_ADDR);
-	if (Status != XST_SUCCESS) {
-		return;
-	}
-
-	/*
-	 * Wait until bus is idle to start another transfer.
-	 */
-	while (XIicPs_BusIsBusy(&Iic));
-
-
-	for (Index = 0; Index < LMK04208_count; Index++) {
-		tx_array[0] = 0x02;
-		tx_array[4] = (u8) (LMK04208_CKin[0][Index]) & (0xFF);
-		tx_array[3] = (u8) (LMK04208_CKin[0][Index] >> 8) & (0xFF);
-		tx_array[2] = (u8) (LMK04208_CKin[0][Index] >> 16) & (0xFF);
-		tx_array[1] = (u8) (LMK04208_CKin[0][Index] >> 24) & (0xFF);
-		Status = XIicPs_MasterSendPolled(&Iic, tx_array, 0x05, I2C_SPI_ADDR);
-		usleep(25000);
-		while (XIicPs_BusIsBusy(&Iic))
-			;
-	}
-
-	sleep(2);
-
-#else
 	int XIicDevFile;
 	char XIicDevFilename[20];
 
@@ -245,19 +142,5 @@ void LMK04208ClockConfig(int XIicBus, unsigned int LMK04208_CKin[1][26])
 
 	Lmk04208UpdateFreq( XIicDevFile, LMK04208_CKin);
 	close(XIicDevFile);
-#endif
+
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-

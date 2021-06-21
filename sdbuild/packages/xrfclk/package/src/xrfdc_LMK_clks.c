@@ -26,7 +26,7 @@ this Software without prior written authorization from Xilinx.
 ******************************************************************************/
 /*****************************************************************************
 *
-* @file xrfdc_lmk04208.c
+* @file xrfdc_clk.c
 *
 * This file contains a programming example for using the lmk04208 clock 
 * generator.
@@ -70,8 +70,6 @@ this Software without prior written authorization from Xilinx.
 
 #include "xrfdc_clk.h"
 
-#define LMK04832_count 125
-
 union i2c_smbus_data {
 	unsigned char byte;
 	unsigned char block[XIIC_BLOCK_MAX+1];
@@ -112,21 +110,34 @@ static inline int IicReadData(int XIicDevFile, unsigned char *value)
 	}
 }
 
-static int Lmk04832UpdateFreq(int XIicDevFile,
-		unsigned int LMK04832_CKin[1][125] )
+static int UpdateFreq(int XIicDevFile, unsigned int CKin[1][REG_COUNT])
 {
 	int Index;
-	unsigned char tx_array[3];
-	for (Index = 0; Index < LMK04832_count; Index++) {
-		tx_array[2] = (unsigned char) (LMK04832_CKin[0][Index]) & (0xFF);
-		tx_array[1] = (unsigned char) (LMK04832_CKin[0][Index] >> 8) & (0xFF);
-		tx_array[0] = (unsigned char) (LMK04832_CKin[0][Index] >> 16) & (0xFF);
-		if (IicWriteData(XIicDevFile, LMK_FUNCTION_ID, 3, tx_array)){
+	unsigned char tx_array[TX_SIZE];
+	
+	for (Index = 0; Index < REG_COUNT; Index++) {
+#ifdef BOARD_ZCU111
+		tx_array[3] = (unsigned char) (LMK04208_CKin[0][Index]) & (0xFF);
+		tx_array[2] = (unsigned char) (LMK04208_CKin[0][Index] >> 8) & (0xFF);
+		tx_array[1] = (unsigned char) (LMK04208_CKin[0][Index] >> 16) & (0xFF);
+		tx_array[0] = (unsigned char) (LMK04208_CKin[0][Index] >> 24) & (0xFF);
+		if (IicWriteData(XIicDevFile, LMK_FUNCTION_ID, TX_SIZE, tx_array)){
 			printf("Error: IicWriteData failed. \n");
 			return -1;
 		}
 		usleep(1000);
-		if (IicWriteData(XIicDevFile, NC_FUNCTION_ID, 3, tx_array)){
+	}
+#elif BOARD_RFSoC2x2
+		tx_array[2] = (unsigned char) (LMK04832_CKin[0][Index]) & (0xFF);
+		tx_array[1] = (unsigned char) (LMK04832_CKin[0][Index] >> 8) & (0xFF);
+		tx_array[0] = (unsigned char) (LMK04832_CKin[0][Index] >> 16) & (0xFF);
+
+		if (IicWriteData(XIicDevFile, LMK_FUNCTION_ID, TX_SIZE, tx_array)){
+			printf("Error: IicWriteData failed. \n");
+			return -1;
+		}
+		usleep(1000);
+		if (IicWriteData(XIicDevFile, NC_FUNCTION_ID, TX_SIZE, tx_array)){
 			printf("Error: IicWriteData failed. \n");
 			return -1;
 		}
@@ -136,17 +147,16 @@ static int Lmk04832UpdateFreq(int XIicDevFile,
 			return -1;
 		}
 	}
+#endif
 	return 0;
 }
 
 /****************************************************************************/
 /**
 *
-* This function is used to configure LMK04832
+* This function is used to configure LMK Clocks
 *
 * @param	XIicBus is the Controller Id/Bus number.
-*           - For Baremetal it is the I2C controller Id to which LMK04832
-*             device is connected.
 *           - For Linux it is the Bus Id to which LMK04832 device is connected.
 * @param	LMK04832_CKin is the configuration array to configure the LMK04832.
 *
@@ -156,7 +166,7 @@ static int Lmk04832UpdateFreq(int XIicDevFile,
 * @note   	None
 *
 ****************************************************************************/
-void LMK04832ClockConfig(int XIicBus, unsigned int LMK04832_CKin[1][125])
+void ClockConfig(int XIicBus, unsigned int CKin[1][REG_COUNT])
 {
 	int XIicDevFile;
 	char XIicDevFilename[20];
@@ -169,6 +179,6 @@ void LMK04832ClockConfig(int XIicBus, unsigned int LMK04832_CKin[1][125])
 		return ;
 	}
 
-	Lmk04832UpdateFreq( XIicDevFile, LMK04832_CKin);
+	UpdateFreq( XIicDevFile, CKin);
 	close(XIicDevFile);
 }

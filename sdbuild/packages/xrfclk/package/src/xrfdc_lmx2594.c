@@ -554,7 +554,7 @@ void Lmx2594Updatei2c(int XIicDevFile,unsigned int  r[LMX2594_A_count])
 	IicWriteData(XIicDevFile, LMX_FUNCTION_ID, 3, tx_array);
 }
 
-
+/*
 static int Lmx2594UpdateFreq(int XIicDevFile,int  XFrequency)
 {
 	int XFreqIndex=0;
@@ -578,6 +578,7 @@ static int Lmx2594UpdateFreq(int XIicDevFile,int  XFrequency)
 	Lmx2594Updatei2c( XIicDevFile, ClockingLmx[0].LMX2594_A);
 	return 0;
 }
+*/
 
 /****************************************************************************/
 /**
@@ -595,6 +596,7 @@ static int Lmx2594UpdateFreq(int XIicDevFile,int  XFrequency)
 * @note   	None
 *
 ****************************************************************************/
+/*
 void LMX2594ClockConfig(int XIicBus, int XFrequency)
 {
 	int XIicDevFile;
@@ -610,3 +612,4 @@ void LMX2594ClockConfig(int XIicBus, int XFrequency)
 
 	Lmx2594UpdateFreq(XIicDevFile, XFrequency);
 }
+*/

@@ -40,6 +40,8 @@ void LMK04832DebugConfig(int XIicBus, unsigned int LMK04832_CKin[1][125]);
 #define I2C_SPI_ADDR 	    0x2A
 #define I2C_MUX_ADDR	    0x71
 #define LMK04832_count 125
+#define REG_COUNT	   125
+#define TX_SIZE		   3
 #endif /* BOARD_RFSoC2x2 */
 
 
@@ -50,6 +52,8 @@ void LMK04208ClockConfig(int XIicBus, unsigned int LMK04208_CKin[1][26]);
 #define I2C_SPI_ADDR 	    0x2F
 #define I2C_MUX_ADDR	    0x74
 #define LMK04832_count 26
+#define REG_COUNT	   26
+#define TX_SIZE        4
 #endif /* BOARD_ZCU111 */
 
 #ifdef BOARD_ZCU208
@@ -59,6 +63,8 @@ void LMK04828BClockConfig(int XIicBus, unsigned int LMK04828B_CKin[1][136]);
 #define I2C_SPI_ADDR 	    0x2F
 #define I2C_MUX_ADDR	    0x74
 #define LMK04832_count 136
+#define REG_COUNT	   136
+#define TX_SIZE
 #endif /* BOARD_ZCU208 */
 
 #endif /* _RFDC_CLK_H_ */

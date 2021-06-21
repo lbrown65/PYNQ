@@ -33,37 +33,14 @@ this Software without prior written authorization from Xilinx.
 #include <sys/ioctl.h>
 #include "xrfdc_clk.h"
 
-#ifdef BOARD_ZCU111
-int writeLmk04208Regs(int IicNum, unsigned int RegVals[26]) {
-    unsigned int LMK04208_CKin[1][26];
-    for(int i=0;i<26;i++)
-	    LMK04208_CKin[0][i] = RegVals[i];
-    LMK04208ClockConfig(IicNum, LMK04208_CKin);
+int writeLMKRegs(int IicNum, unsigned int RegVals[]) {
+    unsigned int CKin[1][REG_COUNT];
+    for(int i=0;i<REG_COUNT;i++)
+	    CKin[0][i] = RegVals[i];
+    ClockConfig(IicNum, CKin);
     return 0;
  }
-#endif /* BOARD_ZCU111 */
- 
-#ifdef BOARD_RFSoC2x2
-int writeLmk04832Regs(int IicNum, unsigned int RegVals[125]) {
-    unsigned int LMK04832_CKin[1][125];
-    for(int i=0;i<125;i++)
-	    LMK04832_CKin[0][i] = RegVals[i];
-    LMK04832ClockConfig(IicNum, LMK04832_CKin);
-    return 0;
-}
-#endif /* BOARD_RFSoC2x2 */
 
-#ifdef BOARD_ZCU208
-int writeLmk04828BRegs(int IicNum, unsigned int RegVals[136]) {
-  unsigned int LMK04828B_CKin[1][136];
-  for (int i = 0; i < 136; i++)
-    LMK04828B_CKin[0][i] = RegVals[i];
-  LMK04828BClockConfig(IicNum, LMK04828B_CKin);
-  return 0;
-}
-#endif /* BOARD_ZCU208 */
-
-#if defined(BOARD_RFSoC2x2) || defined(BOARD_ZCU111) || defined(BOARD_ZCU208)
 int writeLmx2594Regs(int IicNum, unsigned int RegVals[113]) {
     int XIicDevFile;
     char XIicDevFilename[20];
@@ -81,6 +58,7 @@ int writeLmx2594Regs(int IicNum, unsigned int RegVals[113]) {
     return 0;
 }
 
+#if defined(BOARD_RFSoC2x2) || defined(BOARD_ZCU111) || defined(BOARD_ZCU208)
 int clearInt(int IicNum){
     int XIicDevFile;
     char XIicDevFilename[20];
@@ -97,4 +75,3 @@ int clearInt(int IicNum){
     close(XIicDevFile);
     return 0;
 }
-#endif /* BOARD_RFSoC2x2 || BOARD_ZCU111 || BOARD_ZCU208 */

@@ -26,7 +26,6 @@ this Software without prior written authorization from Xilinx.
 ******************************************************************************/
 
 /***************************** Include Files ********************************/
-#ifndef __BAREMETAL__
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>

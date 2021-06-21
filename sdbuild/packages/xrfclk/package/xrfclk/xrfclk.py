@@ -53,8 +53,8 @@ else:
 
 _ffi = cffi.FFI()
 _ffi.cdef("int clearInt(int IicNum);"
-          "int writeLMKRegs(int IicNum, unsigned int RegVals[];"
-          "int writeLMX2594Regs(int IicNum, unsigned int RegVals[113]")
+          "int writeLmkRegs(int IicNum, unsigned int RegVals[]);"
+          "int writeLmx2594Regs(int IicNum, unsigned int RegVals[113]);")
 _lib = _ffi.dlopen(os.path.join(os.path.dirname(__file__), 'libxrfclk.so'))
 
 
@@ -95,7 +95,7 @@ def write_LMK_regs(reg_vals):
         LMK04828B = 136 registers
 
     """
-    _safe_wrapper("writeLMKRegs", _iic_channel, reg_vals)
+    _safe_wrapper("writeLmkRegs", _iic_channel, reg_vals)
     
 def write_LMX_regs(reg_vals):
     """Write values to the LMX registers.
@@ -108,7 +108,7 @@ def write_LMX_regs(reg_vals):
         A list of 113 32-bit register values.
 
     """
-    _safe_wrapper("writeLMX2594Regs", _iic_channel, reg_vals)
+    _safe_wrapper("writeLmx2594Regs", _iic_channel, reg_vals)
     
 def set_LMX_clks(LMX_freq):
     """Set LMX chip frequency.
@@ -122,7 +122,7 @@ def set_LMX_clks(LMX_freq):
     if LMX_freq not in _lmx2594Config:
         raise RuntimeError("Frequency {} MHz is not valid.".format(LMX_freq))
     else:
-        write_regs(_lmx2594Config[LMX_freq])
+        write_LMX_regs(_lmx2594Config[LMX_freq])
         
 def set_LMK_clks(LMK_freq):
     """Set LMK chip frequency.
@@ -137,17 +137,17 @@ def set_LMK_clks(LMK_freq):
         if LMK_freq not in _lmk04208Config:
             raise RuntimeError("Frequency {} MHz is not valid.".format(LMK_freq))
         else:
-            write_regs(_lmk04208Config[LMK_freq])
+            write_LMK_regs(_lmk04208Config[LMK_freq])
     elif board == "RFSoC2x2":
         if LMK_freq not in _lmk04832Config:
             raise RuntimeError("Frequency {} MHz is not valid.".format(LMK_freq))
         else:
-            write_regs(_lmk04208Config[LMK_freq])
+            write_LMK_regs(_lmk04208Config[LMK_freq])
     elif board == "ZCU208":
         if LMK_freq not in _lmk04828BConfig:
             raise RuntimeError("Frequency {} MHz is not valid.".format(LMK_freq))
         else:
-            write_regs(_lmk04828BConfig[LMK_freq])
+            write_LMK_regs(_lmk04828BConfig[LMK_freq])
     else:
         raise ValueError("Board {} is not supported.".format(board))
 
@@ -165,9 +165,9 @@ def set_ref_clks(lmk_freq=122.88, lmx_freq=409.6):
         The frequency for the LMX PLL chip.
 
     """
-        read_tics_output()
-        set_LMK_clks(lmk_freq)
-        set_LMX_clks(lmx_freq)
+    read_tics_output()
+    set_LMK_clks(lmk_freq)
+    set_LMX_clks(lmx_freq)
 
 
 def read_tics_output():

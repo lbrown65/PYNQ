@@ -117,10 +117,10 @@ static int UpdateFreq(int XIicDevFile, unsigned int CKin[1][REG_COUNT])
 	
 	for (Index = 0; Index < REG_COUNT; Index++) {
 #ifdef BOARD_ZCU111
-		tx_array[3] = (unsigned char) (LMK04208_CKin[0][Index]) & (0xFF);
-		tx_array[2] = (unsigned char) (LMK04208_CKin[0][Index] >> 8) & (0xFF);
-		tx_array[1] = (unsigned char) (LMK04208_CKin[0][Index] >> 16) & (0xFF);
-		tx_array[0] = (unsigned char) (LMK04208_CKin[0][Index] >> 24) & (0xFF);
+		tx_array[3] = (unsigned char) (CKin[0][Index]) & (0xFF);
+		tx_array[2] = (unsigned char) (CKin[0][Index] >> 8) & (0xFF);
+		tx_array[1] = (unsigned char) (CKin[0][Index] >> 16) & (0xFF);
+		tx_array[0] = (unsigned char) (CKin[0][Index] >> 24) & (0xFF);
 		if (IicWriteData(XIicDevFile, LMK_FUNCTION_ID, TX_SIZE, tx_array)){
 			printf("Error: IicWriteData failed. \n");
 			return -1;
@@ -128,9 +128,9 @@ static int UpdateFreq(int XIicDevFile, unsigned int CKin[1][REG_COUNT])
 		usleep(1000);
 	}
 #elif BOARD_RFSoC2x2
-		tx_array[2] = (unsigned char) (LMK04832_CKin[0][Index]) & (0xFF);
-		tx_array[1] = (unsigned char) (LMK04832_CKin[0][Index] >> 8) & (0xFF);
-		tx_array[0] = (unsigned char) (LMK04832_CKin[0][Index] >> 16) & (0xFF);
+		tx_array[2] = (unsigned char) (CKin[0][Index]) & (0xFF);
+		tx_array[1] = (unsigned char) (CKin[0][Index] >> 8) & (0xFF);
+		tx_array[0] = (unsigned char) (CKin[0][Index] >> 16) & (0xFF);
 
 		if (IicWriteData(XIicDevFile, LMK_FUNCTION_ID, TX_SIZE, tx_array)){
 			printf("Error: IicWriteData failed. \n");

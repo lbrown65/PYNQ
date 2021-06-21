@@ -27,13 +27,7 @@ this Software without prior written authorization from Xilinx.
 #ifndef _RFDC_CLK_H_
 #define _RFDC_CLK_H_
 
-void LMX2594ClockConfig(int XIicBus, int XFrequency);
-void Lmx2594Updatei2c(int XIicDevFile, unsigned int r[113]);
-int SC18IS602ClearInt(int XIicDevFile);
-
 #ifdef BOARD_RFSoC2x2
-void LMK04832ClockConfig(int XIicBus, unsigned int LMK04832_CKin[1][125]);
-void LMK04832DebugConfig(int XIicBus, unsigned int LMK04832_CKin[1][125]);
 #define LMX_FUNCTION_ID 	0x3
 #define LMK_FUNCTION_ID 	0x8
 #define NC_FUNCTION_ID		0x4
@@ -44,9 +38,7 @@ void LMK04832DebugConfig(int XIicBus, unsigned int LMK04832_CKin[1][125]);
 #define TX_SIZE		   3
 #endif /* BOARD_RFSoC2x2 */
 
-
 #ifdef BOARD_ZCU111
-void LMK04208ClockConfig(int XIicBus, unsigned int LMK04208_CKin[1][26]);
 #define LMX_FUNCTION_ID 	0xd
 #define LMK_FUNCTION_ID 	0x2
 #define I2C_SPI_ADDR 	    0x2F
@@ -57,7 +49,6 @@ void LMK04208ClockConfig(int XIicBus, unsigned int LMK04208_CKin[1][26]);
 #endif /* BOARD_ZCU111 */
 
 #ifdef BOARD_ZCU208
-void LMK04828BClockConfig(int XIicBus, unsigned int LMK04828B_CKin[1][136]);
 #define LMX_FUNCTION_ID 	
 #define LMK_FUNCTION_ID 	0x2
 #define I2C_SPI_ADDR 	    0x2F
@@ -66,5 +57,9 @@ void LMK04828BClockConfig(int XIicBus, unsigned int LMK04828B_CKin[1][136]);
 #define REG_COUNT	   136
 #define TX_SIZE
 #endif /* BOARD_ZCU208 */
+
+void Lmx2594Updatei2c(int XIicDevFile, unsigned int r[113]);
+void ClockConfig(int XIicBus, unsigned int CKin[1][REG_COUNT]);
+int SC18IS602ClearInt(int XIicDevFile);
 
 #endif /* _RFDC_CLK_H_ */

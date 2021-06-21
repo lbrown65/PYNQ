@@ -33,7 +33,7 @@ this Software without prior written authorization from Xilinx.
 #include <sys/ioctl.h>
 #include "xrfdc_clk.h"
 
-int writeLMKRegs(int IicNum, unsigned int RegVals[]) {
+int writeLmkRegs(int IicNum, unsigned int RegVals[]) {
     unsigned int CKin[1][REG_COUNT];
     for(int i=0;i<REG_COUNT;i++)
 	    CKin[0][i] = RegVals[i];
@@ -58,7 +58,6 @@ int writeLmx2594Regs(int IicNum, unsigned int RegVals[113]) {
     return 0;
 }
 
-#if defined(BOARD_RFSoC2x2) || defined(BOARD_ZCU111) || defined(BOARD_ZCU208)
 int clearInt(int IicNum){
     int XIicDevFile;
     char XIicDevFilename[20];

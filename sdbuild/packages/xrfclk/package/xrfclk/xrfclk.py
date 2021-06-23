@@ -53,15 +53,15 @@ else:
 
 _ffi = cffi.FFI()
 _ffi.cdef("int clearInt(int IicNum);"
-          "int writeLmkRegs(int IicNum, unsigned int RegVals[]);"
-          "int writeLmx2594Regs(int IicNum, unsigned int RegVals[113]);")
+          "int writeLmkRegs(int IicNum, unsigned int *RegVals);"
+          "int writeLmx2594Regs(int IicNum, unsigned int *RegVals);")
 _lib = _ffi.dlopen(os.path.join(os.path.dirname(__file__), 'libxrfclk.so'))
 
 
 _lmx2594Config = defaultdict(list)
 _lmk04208Config= defaultdict(list)
 _lmk04832Config = defaultdict(list)
-_lmk04828BConfig = defaultdict(list)
+_lmk04828bConfig = defaultdict(list)
 
 
 def _safe_wrapper(name, *args, **kwargs):
@@ -142,12 +142,12 @@ def set_LMK_clks(LMK_freq):
         if LMK_freq not in _lmk04832Config:
             raise RuntimeError("Frequency {} MHz is not valid.".format(LMK_freq))
         else:
-            write_LMK_regs(_lmk04208Config[LMK_freq])
+            write_LMK_regs(_lmk04832Config[LMK_freq])
     elif board == "ZCU208":
-        if LMK_freq not in _lmk04828BConfig:
+        if LMK_freq not in _lmk04828bConfig:
             raise RuntimeError("Frequency {} MHz is not valid.".format(LMK_freq))
         else:
-            write_LMK_regs(_lmk04828BConfig[LMK_freq])
+            write_LMK_regs(_lmk04828bConfig[LMK_freq])
     else:
         raise ValueError("Board {} is not supported.".format(board))
 

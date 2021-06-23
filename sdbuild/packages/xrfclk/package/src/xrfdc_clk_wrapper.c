@@ -34,12 +34,23 @@ this Software without prior written authorization from Xilinx.
 #include "xrfdc_clk.h"
 
 int writeLmkRegs(int IicNum, unsigned int *RegVals) {
-    unsigned int CKin[1][REG_COUNT];
-    for(int i=0;i<REG_COUNT;i++)
-	    CKin[0][i] = RegVals[i];
-    ClockConfig(IicNum, CKin);
+
+	int XIicDevFile;
+	char XIicDevFilename[20];
+
+	sprintf(XIicDevFilename, "/dev/i2c-%d", IicNum);
+	XIicDevFile = open(XIicDevFilename, O_RDWR);
+
+	if (ioctl(XIicDevFile, I2C_SLAVE_FORCE, I2C_SPI_ADDR) < 0) {
+		printf("Error: Could not set address \n");
+		return 1;
+	}
+
+	LmkUpdateFreq(XIicDevFile, RegVals);
+	close(XIicDevFile);
+    
     return 0;
- }
+}
 
 int writeLmx2594Regs(int IicNum, unsigned int *RegVals) {
     int XIicDevFile;

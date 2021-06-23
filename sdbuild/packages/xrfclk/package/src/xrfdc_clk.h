@@ -59,9 +59,10 @@ this Software without prior written authorization from Xilinx.
 #endif /* BOARD_ZCU208 */
 
 #define LMX_REG_COUNT 113
+#define LMX_TX_SIZE	  3
 
-void Lmx2594Updatei2c(int XIicDevFile, unsigned int r[113]);
-void ClockConfig(int XIicBus, unsigned int CKin[1][REG_COUNT]);
+void Lmx2594Updatei2c(int XIicDevFile, unsigned int *CKin);
+int LmkUpdateFreq(int XIicDevFile, unsigned int *CKin);
 int SC18IS602ClearInt(int XIicDevFile);
 
 #endif /* _RFDC_CLK_H_ */

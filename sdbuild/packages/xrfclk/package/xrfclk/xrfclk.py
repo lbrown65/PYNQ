@@ -95,7 +95,6 @@ def write_LMK_regs(reg_vals):
         LMK04828B = 136 registers
 
     """
-    _safe_wrapper("writeLmkRegs", _iic_channel, reg_vals)
     
 def write_LMX_regs(reg_vals):
     """Write values to the LMX registers.
@@ -165,6 +164,10 @@ def set_ref_clks(lmk_freq=122.88, lmx_freq=409.6):
         The frequency for the LMX PLL chip.
 
     """
+    
+    if board == "ZCU208" and lmk_freq == 122.88:
+        lmk_freq = 10.0
+        
     read_tics_output()
     set_LMK_clks(lmk_freq)
     set_LMX_clks(lmx_freq)

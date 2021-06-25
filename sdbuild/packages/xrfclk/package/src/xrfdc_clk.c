@@ -126,26 +126,15 @@ int LmkUpdateFreq(int XIicDevFile, unsigned int *CKin)
 			return -1;
 		}
 		usleep(1000);
-#elif BOARD_RFSoC2x2
+#elif BOARD_RFSoC2x2 || BOARD_ZCU208
 		tx_array[2] = (unsigned char) (CKin[Index]) & (0xFF);
 		tx_array[1] = (unsigned char) (CKin[Index] >> 8) & (0xFF);
 		tx_array[0] = (unsigned char) (CKin[Index] >> 16) & (0xFF);
-
+#endif
 		if (IicWriteData(XIicDevFile, LMK_FUNCTION_ID, TX_SIZE, tx_array)){
 			printf("Error: IicWriteData failed. \n");
 			return -1;
 		}
-		usleep(1000);
-		if (IicWriteData(XIicDevFile, NC_FUNCTION_ID, TX_SIZE, tx_array)){
-			printf("Error: IicWriteData failed. \n");
-			return -1;
-		}
-		usleep(1000);
-		if (IicReadData(XIicDevFile, tx_array)){
-			printf("Error: IicReadData failed. \n");
-			return -1;
-		}
-#endif
 	}
 	return 0;
 }

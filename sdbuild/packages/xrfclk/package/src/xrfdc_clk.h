@@ -30,7 +30,6 @@ this Software without prior written authorization from Xilinx.
 #ifdef BOARD_RFSoC2x2
 #define LMX_FUNCTION_ID 	0x3
 #define LMK_FUNCTION_ID 	0x8
-#define NC_FUNCTION_ID		0x4
 #define I2C_SPI_ADDR 	    0x2A
 #define I2C_MUX_ADDR	    0x71
 #define LMK04832_count 125
@@ -49,13 +48,13 @@ this Software without prior written authorization from Xilinx.
 #endif /* BOARD_ZCU111 */
 
 #ifdef BOARD_ZCU208
-#define LMX_FUNCTION_ID 	
+#define LMX_FUNCTION_ID 	0xC
 #define LMK_FUNCTION_ID 	0x2
 #define I2C_SPI_ADDR 	    0x2F
 #define I2C_MUX_ADDR	    0x74
 #define LMK04832_count 136
 #define REG_COUNT	   136
-#define TX_SIZE
+#define TX_SIZE		   3
 #endif /* BOARD_ZCU208 */
 
 #define LMX_REG_COUNT 113

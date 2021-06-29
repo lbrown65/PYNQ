@@ -64,8 +64,6 @@ this Software without prior written authorization from Xilinx.
 
 #define XIIC_BLOCK_MAX	16	/* Max data length */
 #define I2C_SMBUS_WRITE	0
-#define I2C_SMBUS_READ	1
-#define I2C_SMBUS_I2C_BYTE   1
 #define I2C_SMBUS_I2C_BLOCK  6
 
 #include "xrfdc_clk.h"
@@ -90,23 +88,6 @@ static inline int IicWriteData(int XIicDevFile, unsigned char command,
 	args.size = I2C_SMBUS_I2C_BLOCK;
 	args.data = &data;
 	return ioctl(XIicDevFile,I2C_SMBUS,&args);
-}
-
-static inline int IicReadData(int XIicDevFile, unsigned char *value)
-{
-	struct i2c_smbus_ioctl_data args;
-	union i2c_smbus_data data;
-	args.read_write = I2C_SMBUS_READ;
-	args.command = 0;
-	args.size = I2C_SMBUS_I2C_BYTE;
-	args.data = &data;
-	if (ioctl(XIicDevFile,I2C_SMBUS,&args)) {
-		return -1;
-	}
-	else {
-		value[0] = 0xff & data.byte;
-		return 0;
-	}
 }
 
 /* Function to write frequency update to I2C for LMK clocks */

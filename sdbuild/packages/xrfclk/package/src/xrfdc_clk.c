@@ -1,16 +1,13 @@
 /******************************************************************************
 Copyright (C) 2020 Xilinx, Inc.  All rights reserved.
-
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
 in the Software without restriction, including without limitation the rights
 to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 copies of the Software, and to permit persons to whom the Software is
 furnished to do so, subject to the following conditions:
-
 The above copyright notice and this permission notice shall be included in
 all copies or substantial portions of the Software.
-
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
@@ -18,11 +15,9 @@ XILINX  BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
 WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF
 OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
-
 Except as contained in this notice, the name of the Xilinx shall not be used
 in advertising or otherwise to promote the sale, use or other dealings in
 this Software without prior written authorization from Xilinx.
-
 ******************************************************************************/
 /*****************************************************************************
 *
@@ -91,26 +86,21 @@ static inline int IicWriteData(int XIicDevFile, unsigned char command,
 }
 
 /* Function to write frequency update to I2C for LMK clocks */
-int LmkUpdateFreq(int XIicDevFile, unsigned int *CKin)
+int LmkUpdateFreq(int XIicDevFile, unsigned int *RegVals)
 {
 	int Index;
 	unsigned char tx_array[TX_SIZE];
 	
 	for (Index = 0; Index < REG_COUNT; Index++) {
 #ifdef BOARD_ZCU111
-		tx_array[3] = (unsigned char) (CKin[Index]) & (0xFF);
-		tx_array[2] = (unsigned char) (CKin[Index] >> 8) & (0xFF);
-		tx_array[1] = (unsigned char) (CKin[Index] >> 16) & (0xFF);
-		tx_array[0] = (unsigned char) (CKin[Index] >> 24) & (0xFF);
-		if (IicWriteData(XIicDevFile, LMK_FUNCTION_ID, TX_SIZE, tx_array)){
-			printf("Error: IicWriteData failed. \n");
-			return -1;
-		}
-		usleep(1000);
+		tx_array[3] = (unsigned char) (RegVals[Index]) & (0xFF);
+		tx_array[2] = (unsigned char) (RegVals[Index] >> 8) & (0xFF);
+		tx_array[1] = (unsigned char) (RegVals[Index] >> 16) & (0xFF);
+		tx_array[0] = (unsigned char) (RegVals[Index] >> 24) & (0xFF);
 #elif BOARD_RFSoC2x2 || BOARD_ZCU208
-		tx_array[2] = (unsigned char) (CKin[Index]) & (0xFF);
-		tx_array[1] = (unsigned char) (CKin[Index] >> 8) & (0xFF);
-		tx_array[0] = (unsigned char) (CKin[Index] >> 16) & (0xFF);
+		tx_array[2] = (unsigned char) (RegVals[Index]) & (0xFF);
+		tx_array[1] = (unsigned char) (RegVals[Index] >> 8) & (0xFF);
+		tx_array[0] = (unsigned char) (RegVals[Index] >> 16) & (0xFF);
 #endif
 		if (IicWriteData(XIicDevFile, LMK_FUNCTION_ID, TX_SIZE, tx_array)){
 			printf("Error: IicWriteData failed. \n");
@@ -122,7 +112,7 @@ int LmkUpdateFreq(int XIicDevFile, unsigned int *CKin)
 
 
 /* Function to configure I2C for the LMX2594 clock */
-void Lmx2594Updatei2c(int XIicDevFile,unsigned int *CKin)
+void Lmx2594Updatei2c(int XIicDevFile,unsigned int *RegVals)
 {
 	int Index=0;
 	unsigned char tx_array[LMX_TX_SIZE];
@@ -146,18 +136,18 @@ void Lmx2594Updatei2c(int XIicDevFile,unsigned int *CKin)
 /* 4. Program registers as shown in the register map in REVERSE order 
  *    from highest to lowest. */
 	for (Index = 0; Index < LMX_REG_COUNT; Index++) {
-		tx_array[2] = (unsigned char) (CKin[Index]) & (0xFF);
-		tx_array[1] = (unsigned char) (CKin[Index] >> 8) & (0xFF);
-		tx_array[0] = (unsigned char) (CKin[Index] >> 16) & (0xFF);
+		tx_array[2] = (unsigned char) (RegVals[Index]) & (0xFF);
+		tx_array[1] = (unsigned char) (RegVals[Index] >> 8) & (0xFF);
+		tx_array[0] = (unsigned char) (RegVals[Index] >> 16) & (0xFF);
 		IicWriteData(XIicDevFile, LMX_FUNCTION_ID, LMX_TX_SIZE, tx_array);
 		usleep(1000);
 	}
     
 /* 5. Program register R0 one additional time with FCAL_EN = 1 to ensure 
  *    that the VCO calibration runs from a stable state. */
-	tx_array[2] = (unsigned char) (CKin[112]) & (0xFF);
-	tx_array[1] = (unsigned char) (CKin[112] >> 8) & (0xFF);
-	tx_array[0] = (unsigned char) (CKin[112] >> 16) & (0xFF);
+	tx_array[2] = (unsigned char) (RegVals[112]) & (0xFF);
+	tx_array[1] = (unsigned char) (RegVals[112] >> 8) & (0xFF);
+	tx_array[0] = (unsigned char) (RegVals[112] >> 16) & (0xFF);
 	IicWriteData(XIicDevFile, LMX_FUNCTION_ID, LMX_TX_SIZE, tx_array);
 }
 

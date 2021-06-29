@@ -83,9 +83,7 @@ def clear_int():
 
 def write_LMK_regs(reg_vals):
     """Write values to the LMK registers.
-
     This is an internal function.
-
     Parameters
     ----------
     reg_vals: list
@@ -93,8 +91,8 @@ def write_LMK_regs(reg_vals):
         LMK04208 = 32 registers
         LMK04832 = 125 registers
         LMK04828B = 136 registers
-
     """
+    _safe_wrapper("writeLmkRegs", _iic_channel, reg_vals)
     
 def write_LMX_regs(reg_vals):
     """Write values to the LMX registers.
@@ -137,16 +135,19 @@ def set_LMK_clks(LMK_freq):
             raise RuntimeError("Frequency {} MHz is not valid.".format(LMK_freq))
         else:
             write_LMK_regs(_lmk04208Config[LMK_freq])
+            
     elif board == "RFSoC2x2":
         if LMK_freq not in _lmk04832Config:
             raise RuntimeError("Frequency {} MHz is not valid.".format(LMK_freq))
         else:
             write_LMK_regs(_lmk04832Config[LMK_freq])
+            
     elif board == "ZCU208":
         if LMK_freq not in _lmk04828bConfig:
             raise RuntimeError("Frequency {} MHz is not valid.".format(LMK_freq))
         else:
             write_LMK_regs(_lmk04828bConfig[LMK_freq])
+            
     else:
         raise ValueError("Board {} is not supported.".format(board))
 

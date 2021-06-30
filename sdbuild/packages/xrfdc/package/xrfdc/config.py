@@ -69,6 +69,8 @@ _DAC_Tile = [
     ('OutputDiv', 'C_DAC{}_OutDiv', 'int'),
     ('RefClkDiv', 'C_DAC{}_Refclk_Div', 'int'),
     ('MultibandConfig', 'C_DAC{}_Band', 'int')
+    ('MaxSampleRate', 'C_DAC{}_Fs_Max', 'double')
+    ('NumSlices', 'C_DAC0_Slices', 'int')
 ]
 
 _ADC_Tile = [
@@ -81,12 +83,16 @@ _ADC_Tile = [
     ('OutputDiv', 'C_ADC{}_OutDiv', 'int'),
     ('RefClkDiv', 'C_ADC{}_Refclk_Div', 'int'),
     ('MultibandConfig', 'C_ADC{}_Band', 'int')
+    ('MaxSampleRate', 'C_ADC{}_Fs_Max', 'double')
+    ('NumSlices', 'C_ADC{}_Slices', 'int')
 ]
 
 _Config = [
     ('ADCType', 'C_High_Speed_ADC', 'int'),
     ('ADCSysRefSource', 'C_Sysref_Source', 'int'),
     ('DACSysRefSource', 'C_Sysref_Source', 'int')
+    ('IPType', 'C_IP_Type', 'int')
+    ('SiRevision', 'C_Silicon_Revision', 'int')
 ]
 
 _bool_dict = {

@@ -76,14 +76,20 @@ _block_props = [
     ("MixerSettings"      , "XRFdc_Mixer_Settings"      , False                     ),
     ("QMCSettings"        , "XRFdc_QMC_Settings"        , False                     ),
     ("CoarseDelaySettings", "XRFdc_CoarseDelay_Settings", False                     ),
-    ("NyquistZone"        , "u32"                       , False                     )
+    ("NyquistZone"        , "u32"                       , False                     ),
+    ("EnabledInterrupts"  , "u32"                       , True                      )
 ]
 
 _adc_props = [
     ("DecimationFactor"   , "u32"                       , False, False, True , True ),
     ("CalibrationMode"    , "u8"                        , False, False, True , True ),
     ("FabRdVldWords"      , "u32"                       , False, False, False, True ),
-    ("FabWrVldWords"      , "u32"                       , True , False, False, False)
+    ("FabWrVldWords"      , "u32"                       , True , False, False, False),
+    ("DecimationFactorObs", "u32"                       , False, False, True , True ),
+    ("FabRdVldWordsObs"   , "u32"                       , False, False, False, True ),
+    ("FabWrVldWordsObs"   , "u32"                       , True , False, False, False),
+    ("Dither"             , "u32"                       , False, False, True , True )
+    
 ]
 
 _dac_props = [
@@ -92,18 +98,24 @@ _dac_props = [
     ("OutputCurr"         , "int"                       , True , False, True , True ),
     ("InvSincFIR"         , "u16"                       , False, False, True , True ),
     ("FabRdVldWords"      , "u32"                       , True , False, False, False),
-    ("FabWrVldWords"      , "u32"                       , False, False, False, True )
+    ("FabWrVldWords"      , "u32"                       , False, False, False, True ),
+    ("FabRdVldWordsObs"   , "u32"                       , False, False, False, True ),
+    ("FabWrVldWordsObs"   , "u32"                       , True , False, False, False),
+    ("DataPathMode"       , "u32"                       , False, False, True , True )
 ]
 
 _tile_props = [
     ("FabClkOutDiv"       , "u16"                       , False                     ),
     ("FIFOStatus"         , "u8"                        , True                      ),
+    ("FIFOStatusObs"      , "u8"                        , False                     ),
     ("ClockSource"        , "u32"                       , True                      ),
-    ("PLLLockStatus"      , "u32"                       , True                      )
+    ("PLLLockStatus"      , "u32"                       , True                      ),
+    ("PLLConfig"          , "XRFdc_PLL_Settings"        , True                      )
 ]
 
 _rfdc_props = [
-    ("IPStatus"           , "XRFdc_IPStatus"            , True                      )
+    ("IPStatus"           , "XRFdc_IPStatus"             , True                      ),
+    ("ClkDistribution"    , "XRFdc_Distribution_Settings", False                     )
 ]
 
 # Next we define some helper functions for creating properties and

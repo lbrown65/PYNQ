@@ -41,9 +41,9 @@ _DAC_ADP = [
 ]
 
 _DAC_DDP = [
-    ('DataType', 'C_DAC_Data_Type{}{}', 'int'),
+    ('MixerInputDataType', 'C_DAC_Data_Type{}{}', 'int'),
     ('DataWidth', 'C_DAC_Data_Width{}{}', 'int'),
-    ('InterploationMode', 'C_DAC_Interpolation_Mode{}{}', 'int'),
+    ('InterpolationMode', 'C_DAC_Interpolation_Mode{}{}', 'int'),
     ('MixerType', 'C_DAC_Mixer_Type{}{}', 'int')
 ]
 
@@ -53,7 +53,7 @@ _ADC_ADP = [
 ]
 
 _ADC_DDP = [
-    ('DataType', 'C_ADC_Data_Type{}{}', 'int'),
+    ('MixerInputDataType', 'C_ADC_Data_Type{}{}', 'int'),
     ('DataWidth', 'C_ADC_Data_Width{}{}', 'int'),
     ('DecimationMode', 'C_ADC_Decimation_Mode{}{}', 'int'),
     ('MixerType', 'C_ADC_Mixer_Type{}{}', 'int')

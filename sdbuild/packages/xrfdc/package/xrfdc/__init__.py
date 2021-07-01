@@ -77,7 +77,10 @@ _block_props = [
     ("QMCSettings"        , "XRFdc_QMC_Settings"        , False                     ),
     ("CoarseDelaySettings", "XRFdc_CoarseDelay_Settings", False                     ),
     ("NyquistZone"        , "u32"                       , False                     ),
-    ("EnabledInterrupts"  , "u32"                       , True                      )
+    ("EnabledInterrupts"  , "u32"                       , True                      ),
+    ("PwrMode"            , "XRFdc_Pwr_Mode_Settings"   , False                     ),
+    ("ConnectedIData"     , "u32"                       , True                      ),
+    ("ConnectedQData"     , "u32"                       , True                      )
 ]
 
 _adc_props = [
@@ -88,8 +91,10 @@ _adc_props = [
     ("DecimationFactorObs", "u32"                       , False, False, True , True ),
     ("FabRdVldWordsObs"   , "u32"                       , False, False, False, True ),
     ("FabWrVldWordsObs"   , "u32"                       , True , False, False, False),
-    ("Dither"             , "u32"                       , False, False, True , True )
-    
+    ("Dither"             , "u32"                       , False, False, True , True ),
+    ("FIFOStatusObs"      , "u8"                        , True , False, False, False),
+    ("CalFreeze"          , "XRFdc_Cal_Freeze_Settings" , False, False, True , True ),
+    ("DSA"                , "XRFdc_DSA_Settings"        , False, False, True , True )
 ]
 
 _dac_props = [
@@ -99,15 +104,15 @@ _dac_props = [
     ("InvSincFIR"         , "u16"                       , False, False, True , True ),
     ("FabRdVldWords"      , "u32"                       , True , False, False, False),
     ("FabWrVldWords"      , "u32"                       , False, False, False, True ),
-    ("FabRdVldWordsObs"   , "u32"                       , False, False, False, True ),
-    ("FabWrVldWordsObs"   , "u32"                       , True , False, False, False),
-    ("DataPathMode"       , "u32"                       , False, False, True , True )
+    ("DataPathMode"       , "u32"                       , False, False, True , True ),
+    ("IMRPassMode"        , "u32"                       , False, False, True , True ),
+    ("DACVOP"             , "u32"                       , False, True , True , True ),
+    ("DACCompMode"        , "u32"                       , False, False, True , True )
 ]
 
 _tile_props = [
     ("FabClkOutDiv"       , "u16"                       , False                     ),
     ("FIFOStatus"         , "u8"                        , True                      ),
-    ("FIFOStatusObs"      , "u8"                        , False                     ),
     ("ClockSource"        , "u32"                       , True                      ),
     ("PLLLockStatus"      , "u32"                       , True                      ),
     ("PLLConfig"          , "XRFdc_PLL_Settings"        , True                      )
@@ -271,6 +276,9 @@ class RFdcBlock:
 
     def UpdateEvent(self, Event):
         self._call_function("UpdateEvent", Event)
+        
+    def ResetInternalFIFOWidth(self):
+        self._call_function("ResetInternalFIFOWidth")
 
 
 class RFdcDacBlock(RFdcBlock):
@@ -288,6 +296,19 @@ class RFdcAdcBlock(RFdcBlock):
 
     def _call_function_implicit(self, name, *args):
         return self._parent._call_function_implicit(name, self._index, *args)
+        
+    def DisableCoefficientsOverride(self, CalibrationBlock):
+        self._call_function_implicit("DisableCoefficientsOverride", CalibrationBlock)
+        
+    def ResetInternalFIFOWidthObs(self):
+        self._call_function("ResetInternalFIFOWidthObs")
+        
+    def SetCalCoefficients(self, CalibrationBlock, *CoeffPtr):
+        self._call_function_implicit("SetCalCoefficients", CalibrationBlock, *CoeffPtr)
+        
+    def GetCalCoefficients(self, CalibrationBlock, *CoeffPtr):
+        self._call_function_implicit("GetCalCoefficients", CalibrationBlock, *CoeffPtr)
+
 
 
 class RFdcTile:
@@ -332,6 +353,12 @@ class RFdcAdcTile(RFdcTile):
         super().__init__(*args)
         self._type = _lib.XRFDC_ADC_TILE
         self.blocks = [RFdcAdcBlock(self, i) for i in range(4)]
+        
+    def SetupFIFOObs(self, Enable):
+        self._call_function("SetupFIFOObs", Enable)
+        
+    def SetupFIFOBoth(self, Enable):
+        self._call_function("SetupFIFOBoth", Enable)
 
 
 class RFdc(pynq.DefaultIP):

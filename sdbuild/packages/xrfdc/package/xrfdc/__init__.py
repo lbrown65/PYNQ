@@ -373,8 +373,8 @@ class RFdc(pynq.DefaultIP):
             pass
         else:
             warnings.warn("Please use an hwh file with the RFSoC driver"
-                          " - the default configuration is being used")
-            self._config = _lib.XRFdc_LookupConfig(0)
+                          " the driver cannot be loaded")
+            raise pynq.UnsupportedConfiguration()
         self._instance = _ffi.new("XRFdc*")
         self._config.BaseAddr = self.mmio.array.ctypes.data
         _lib.XRFdc_CfgInitialize(self._instance, self._config)

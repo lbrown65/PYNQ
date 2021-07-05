@@ -78,9 +78,7 @@ _block_props = [
     ("CoarseDelaySettings", "XRFdc_CoarseDelay_Settings", False                     ),
     ("NyquistZone"        , "u32"                       , False                     ),
     ("EnabledInterrupts"  , "u32"                       , True                      ),
-    ("PwrMode"            , "XRFdc_Pwr_Mode_Settings"   , False                     ),
-    ("ConnectedIData"     , "u32"                       , True                      ),
-    ("ConnectedQData"     , "u32"                       , True                      )
+    ("PwrMode"            , "XRFdc_Pwr_Mode_Settings"   , False                     )
 ]
 
 _adc_props = [
@@ -92,7 +90,6 @@ _adc_props = [
     ("FabRdVldWordsObs"   , "u32"                       , False, False, False, True ),
     ("FabWrVldWordsObs"   , "u32"                       , True , False, False, False),
     ("Dither"             , "u32"                       , False, False, True , True ),
-    ("FIFOStatusObs"      , "u8"                        , True , False, False, False),
     ("CalFreeze"          , "XRFdc_Cal_Freeze_Settings" , False, False, True , True ),
     ("DSA"                , "XRFdc_DSA_Settings"        , False, False, True , True )
 ]
@@ -106,7 +103,6 @@ _dac_props = [
     ("FabWrVldWords"      , "u32"                       , False, False, False, True ),
     ("DataPathMode"       , "u32"                       , False, False, True , True ),
     ("IMRPassMode"        , "u32"                       , False, False, True , True ),
-    ("DACVOP"             , "u32"                       , False, True , True , True ),
     ("DACCompMode"        , "u32"                       , False, False, True , True )
 ]
 
@@ -279,6 +275,12 @@ class RFdcBlock:
         
     def ResetInternalFIFOWidth(self):
         self._call_function("ResetInternalFIFOWidth")
+        
+    def GetConnectedIData(self):
+        self._call_function("GetConnectedIData")
+        
+    def GetConnectedQData(self):
+        self._call_function("GetConnectedQData")
 
 
 class RFdcDacBlock(RFdcBlock):
@@ -287,6 +289,9 @@ class RFdcDacBlock(RFdcBlock):
 
     def _call_function_implicit(self, name, *args):
         return self._parent._call_function_implicit(name, self._index, *args)
+    
+    def SetDACVOP(self, uACurrent):
+        self._call_function_implicit("SetDACVOP", uACurrent)
 
 
 class RFdcAdcBlock(RFdcBlock):
@@ -359,6 +364,9 @@ class RFdcAdcTile(RFdcTile):
         
     def SetupFIFOBoth(self, Enable):
         self._call_function("SetupFIFOBoth", Enable)
+        
+    def GetFIFOStatusObs(self, *EnablePtr):
+        self._call_function("GetFIFOStatusObs", *EnablePtr)
 
 
 class RFdc(pynq.DefaultIP):

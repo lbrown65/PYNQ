@@ -134,6 +134,11 @@ Finally we define the object hierarchy. Each element of the object
 hierarchy has a `_call_function` method which handles adding the
 block/tile/toplevel arguments to the list of function parameters.
 
+Some functions are Gen 3 specific. These are clearly labelled in the RFDC user guide. 
+If attempting to use one of these functions on a Gen 1 board, the user will see the error:
+metal: error:     
+ Requested functionality not available for this IP 
+
 Copyright (C) 2021 Xilinx, Inc
 
 SPDX-License-Identifier: BSD-3-Clause

@@ -4,7 +4,7 @@ This is a package implementing the drivers for RF data converter IP.
 
 ## Usage
 
-The class `RFdc` is bound to the IP `xilinx.com:ip:usp_rf_data_converter:2.3`.
+The class `RFdc` is bound to the IP `xilinx.com:ip:usp_rf_data_converter:2.4`.
 Once the overlay is loaded, the data converter IP will be allocated the driver
 code implemented in this class.
 

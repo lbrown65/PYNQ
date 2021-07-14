@@ -139,8 +139,6 @@ def set_LMK_clks(LMK_freq):
             raise RuntimeError("Frequency {} MHz is not valid.".format(LMK_freq))
         else:
             write_LMK_regs(_lmk04832Config[LMK_freq])
-        else:
-            write_LMK_regs(_lmk04828bConfig[LMK_freq])
     else:
         raise ValueError("Board {} is not supported.".format(board))
 

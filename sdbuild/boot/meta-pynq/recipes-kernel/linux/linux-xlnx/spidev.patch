@@ -1,0 +1,12 @@
+diff --git a/drivers/spi/spidev.c b/drivers/spi/spidev.c
+index 859910ec8d9f..f5a99c6a79af 100644
+--- a/drivers/spi/spidev.c
++++ b/drivers/spi/spidev.c
+@@ -682,6 +682,7 @@ static const struct of_device_id spidev_dt_ids[] = {
+ 	{ .compatible = "lwn,bk4" },
+ 	{ .compatible = "dh,dhcom-board" },
+ 	{ .compatible = "menlo,m53cpld" },
++	{ .compatable = "nxp,sc18is602b" },
+ 	{},
+ };
+ MODULE_DEVICE_TABLE(of, spidev_dt_ids);

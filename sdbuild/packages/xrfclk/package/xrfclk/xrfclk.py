@@ -32,53 +32,25 @@ import os
 import glob
 import re
 import cffi
+import struct
+import time
+from pathlib import Path
 from collections import defaultdict
 
 
-__author__ = "Yun Rock Qu"
+__author__ = "Yun Rock Qu, Lewis Brown"
 __copyright__ = "Copyright 2021, Xilinx"
 __email__ = "pynq_support@xilinx.com"
 
 
 board = os.environ['BOARD']
-if board == "ZCU111":
-    _iic_channel = 12
-elif board == "RFSoC2x2":
-    _iic_channel = 7
-else:
-    raise ValueError("Board {} is not supported.".format(board))
-
-
-_ffi = cffi.FFI()
-_ffi.cdef("int clearInt(int IicNum);"
-          "int writeLmkRegs(int IicNum, unsigned int *RegVals);"
-          "int writeLmx2594Regs(int IicNum, unsigned int *RegVals);")
-_lib = _ffi.dlopen(os.path.join(os.path.dirname(__file__), 'libxrfclk.so'))
-
 
 _lmx2594Config = defaultdict(list)
 _lmk04208Config= defaultdict(list)
 _lmk04832Config = defaultdict(list)
 
 
-def _safe_wrapper(name, *args, **kwargs):
-    """Wrapper function for FFI function calls.
-
-    """
-    if not hasattr(_lib, name):
-        raise RuntimeError("Function {} not in library.".format(name))
-    if getattr(_lib, name)(*args, **kwargs):
-        raise RuntimeError("Function {} call failed.".format(name))
-
-
-def clear_int():
-    """Clear the interrupts.
-
-    """
-    _safe_wrapper("clearInt", _iic_channel)
-
-
-def write_LMK_regs(reg_vals):
+def write_LMK_regs(reg_vals, spi_address):
     """Write values to the LMK registers.
 
     This is an internal function.
@@ -91,9 +63,14 @@ def write_LMK_regs(reg_vals):
         LMK04832 = 125 registers
 
     """
-    _safe_wrapper("writeLmkRegs", _iic_channel, reg_vals)
+    path = os.path.join('/dev/', spi_address)
     
-def write_LMX_regs(reg_vals):
+    with open(path, 'wb', buffering=0) as f:
+        for v in reg_vals:
+            data = struct.pack('>I', v)
+            f.write(data[1:])
+    
+def write_LMX_regs(reg_vals, spi_address):
     """Write values to the LMX registers.
 
     This is an internal function.
@@ -104,9 +81,30 @@ def write_LMX_regs(reg_vals):
         A list of 113 32-bit register values.
 
     """
-    _safe_wrapper("writeLmx2594Regs", _iic_channel, reg_vals)
     
-def set_LMX_clks(LMX_freq):
+    path = os.path.join('/dev/', spi_address)
+    
+    with open(path, 'wb', buffering=0) as f:
+        # Program RESET = 1 to reset registers.
+        reset = struct.pack('>I', 0x020000)
+        f.write(reset[1:])
+        
+        # Program RESET = 0 to remove reset.
+        remove_reset = struct.pack('>I', 0)
+        f.write(remove_reset[1:])
+        
+        # Program registers as shown in the register map in REVERSE order from highest to lowest
+        for v in reg_vals:
+            data = struct.pack('>I', v)
+            f.write(data[1:])
+            
+        # Program register R0 one additional time with FCAL_EN = 1 
+        # to ensure that the VCO calibration runs from a stable state.
+        stable = struct.pack('>I', reg_vals[112])
+        f.write(stable[1:])
+        
+        
+def set_LMX_clks(LMX_freq, spi_address):
     """Set LMX chip frequency.
 
     Parameters
@@ -118,9 +116,9 @@ def set_LMX_clks(LMX_freq):
     if LMX_freq not in _lmx2594Config:
         raise RuntimeError("Frequency {} MHz is not valid.".format(LMX_freq))
     else:
-        write_LMX_regs(_lmx2594Config[LMX_freq])
+        write_LMX_regs(_lmx2594Config[LMX_freq], spi_address)
         
-def set_LMK_clks(LMK_freq):
+def set_LMK_clks(LMK_freq, spi_address):
     """Set LMK chip frequency.
 
     Parameters
@@ -133,14 +131,42 @@ def set_LMK_clks(LMK_freq):
         if LMK_freq not in _lmk04208Config:
             raise RuntimeError("Frequency {} MHz is not valid.".format(LMK_freq))
         else:
-            write_LMK_regs(_lmk04208Config[LMK_freq])
+            write_LMK_regs(_lmk04208Config[LMK_freq], spi_address)
     elif board == "RFSoC2x2":
         if LMK_freq not in _lmk04832Config:
             raise RuntimeError("Frequency {} MHz is not valid.".format(LMK_freq))
         else:
-            write_LMK_regs(_lmk04832Config[LMK_freq])
+            write_LMK_regs(_lmk04832Config[LMK_freq], spi_address)
     else:
         raise ValueError("Board {} is not supported.".format(board))
+        
+def find_spi_address():
+
+    spidevs = list(Path('/sys/bus/spi/devices').glob('*'))
+    clock_name = list(Path('/sys/bus/spi/devices').glob('*'))
+
+    for i in range(3):
+        
+        name_path = os.path.join(spidevs[i], 'of_node', 'name')
+        clock_name[i] = Path(name_path).read_text()
+        clock_name[i] = clock_name[i][:-1]
+        
+        Path('/sys/bus/spi/drivers/spidev/unbind').write_text(spidevs[i].name)
+        (spidevs[i] / 'driver_override').write_text('spidev')
+        Path('/sys/bus/spi/drivers/spidev/bind').write_text(spidevs[i].name)
+        
+        if clock_name[i] == 'lmxadc':
+            lmxadc_address = spidevs[i].name
+        elif clock_name[i] == 'lmxdac':
+            lmxdac_address = spidevs[i].name
+        elif clock_name[i] == 'lmk':
+            lmk_address = spidevs[i].name
+        else:
+            raise ValueError("Clock {} is not supported.".format(clock_name[i]))
+            
+    spi_address = [lmk_address, lmxadc_address, lmxdac_address]
+            
+    return spi_address
 
 
 def set_ref_clks(lmk_freq=122.88, lmx_freq=409.6):
@@ -156,9 +182,12 @@ def set_ref_clks(lmk_freq=122.88, lmx_freq=409.6):
         The frequency for the LMX PLL chip.
 
     """
+    spi_address = find_spi_address()
+    
     read_tics_output()
-    set_LMK_clks(lmk_freq)
-    set_LMX_clks(lmx_freq)
+    set_LMK_clks(lmk_freq, spi_address[0])
+    set_LMX_clks(lmx_freq, spi_address[1])
+    set_LMX_clks(lmx_freq, spi_address[2])
 
 
 def read_tics_output():

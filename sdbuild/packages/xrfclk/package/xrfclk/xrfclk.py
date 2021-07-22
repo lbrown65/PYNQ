@@ -31,12 +31,9 @@
 import os
 import glob
 import re
-import cffi
 import struct
-import time
 from pathlib import Path
 from collections import defaultdict
-
 
 __author__ = "Yun Rock Qu, Lewis Brown"
 __copyright__ = "Copyright 2021, Xilinx"
@@ -45,12 +42,17 @@ __email__ = "pynq_support@xilinx.com"
 
 board = os.environ['BOARD']
 
-_lmx2594Config = defaultdict(list)
-_lmk04208Config= defaultdict(list)
-_lmk04832Config = defaultdict(list)
+_Config = defaultdict(dict)
+
+lmk_address = 'None'
+lmx_address = 'None'
+num_bytes = 'None'
+lmk_compatible = 'None'
+lmx_compatible = 'None'
 
 
 def write_LMK_regs(reg_vals, spi_address):
+
     """Write values to the LMK registers.
 
     This is an internal function.
@@ -63,12 +65,16 @@ def write_LMK_regs(reg_vals, spi_address):
         LMK04832 = 125 registers
 
     """
-    path = os.path.join('/dev/', spi_address)
     
-    with open(path, 'wb', buffering=0) as f:
+    global num_bytes
+        
+    with open(spi_address, 'rb+', buffering=0) as f:
         for v in reg_vals:
             data = struct.pack('>I', v)
-            f.write(data[1:])
+            if num_bytes == 3:
+                f.write(data[1:])
+            else:
+                f.write(data)
     
 def write_LMX_regs(reg_vals, spi_address):
     """Write values to the LMX registers.
@@ -82,9 +88,7 @@ def write_LMX_regs(reg_vals, spi_address):
 
     """
     
-    path = os.path.join('/dev/', spi_address)
-    
-    with open(path, 'wb', buffering=0) as f:
+    with open(spi_address, 'rb+', buffering=0) as f:
         # Program RESET = 1 to reset registers.
         reset = struct.pack('>I', 0x020000)
         f.write(reset[1:])
@@ -109,65 +113,67 @@ def set_LMX_clks(LMX_freq, spi_address):
 
     Parameters
     ----------
-    lmx_freq: float
+    LMX_freq: float
         The frequency for the LMX PLL chip.
 
     """
-    if LMX_freq not in _lmx2594Config:
+        
+    if LMX_freq not in _Config[lmx_compatible]:
         raise RuntimeError("Frequency {} MHz is not valid.".format(LMX_freq))
     else:
-        write_LMX_regs(_lmx2594Config[LMX_freq], spi_address)
+        write_LMK_regs(_Config[lmx_compatible][LMX_freq], spi_address)
         
 def set_LMK_clks(LMK_freq, spi_address):
     """Set LMK chip frequency.
 
     Parameters
     ----------
-    lmx_freq: float
-        The frequency for the LMX PLL chip.
+    LMK_freq: float
+        The frequency for the LMK chip.
 
     """
-    if board == "ZCU111":
-        if LMK_freq not in _lmk04208Config:
-            raise RuntimeError("Frequency {} MHz is not valid.".format(LMK_freq))
-        else:
-            write_LMK_regs(_lmk04208Config[LMK_freq], spi_address)
-    elif board == "RFSoC2x2":
-        if LMK_freq not in _lmk04832Config:
-            raise RuntimeError("Frequency {} MHz is not valid.".format(LMK_freq))
-        else:
-            write_LMK_regs(_lmk04832Config[LMK_freq], spi_address)
+    
+    if LMK_freq not in _Config[lmk_compatible]:
+        raise RuntimeError("Frequency {} MHz is not valid.".format(LMK_freq))
     else:
-        raise ValueError("Board {} is not supported.".format(board))
+        write_LMK_regs(_Config[lmk_compatible][LMK_freq], spi_address)
         
-def find_spi_address():
+def _get_spidev_path(dev):
+    spidev = list(dev.glob('spidev/*'))[0]
+    return Path('/dev') / spidev.name
 
-    spidevs = list(Path('/sys/bus/spi/devices').glob('*'))
-    clock_name = list(Path('/sys/bus/spi/devices').glob('*'))
-
-    for i in range(3):
+def _spidev_bind(dev):
+    (dev / 'driver_override').write_text('spidev')
+    Path('/sys/bus/spi/drivers/spidev/bind').write_text(dev.name)
+    
         
-        name_path = os.path.join(spidevs[i], 'of_node', 'name')
-        clock_name[i] = Path(name_path).read_text()
-        clock_name[i] = clock_name[i][:-1]
+def _find_spi_address():
+    global lmk_address, lmx_address, num_bytes, lmk_compatible, lmx_compatible
+    lmk = []
+    lmx = []
+    
+    for dev in Path('/sys/bus/spi/devices').glob('*'):
+        compatible = (dev / 'of_node' / 'compatible').read_text()[3:-1]
         
-        Path('/sys/bus/spi/drivers/spidev/unbind').write_text(spidevs[i].name)
-        (spidevs[i] / 'driver_override').write_text('spidev')
-        Path('/sys/bus/spi/drivers/spidev/bind').write_text(spidevs[i].name)
-        
-        if clock_name[i] == 'lmxadc':
-            lmxadc_address = spidevs[i].name
-        elif clock_name[i] == 'lmxdac':
-            lmxdac_address = spidevs[i].name
-        elif clock_name[i] == 'lmk':
-            lmk_address = spidevs[i].name
+        if compatible[:3] != 'lmk' and compatible[:3] != 'lmx':
+            continue
         else:
-            raise ValueError("Clock {} is not supported.".format(clock_name[i]))
+            if (dev / 'driver').exists():
+                (dev / 'driver' / 'unbind').write_text(dev.name)
             
-    spi_address = [lmk_address, lmxadc_address, lmxdac_address]
-            
-    return spi_address
+            _spidev_bind(dev)
 
+            if compatible[:3] == 'lmk':
+                lmk.append(_get_spidev_path(dev))
+                num_bytes = struct.unpack('>I', (dev / 'of_node' / 'num_bytes').read_bytes())[0]
+                lmk_compatible = compatible
+            else:
+                # if not an LMK, is an LMX
+                lmx.append(_get_spidev_path(dev))
+                lmx_compatible = compatible
+                       
+    lmk_address = lmk
+    lmx_address = lmx
 
 def set_ref_clks(lmk_freq=122.88, lmx_freq=409.6):
     """Set all RF data converter tile reference clocks to a given frequency.
@@ -182,12 +188,17 @@ def set_ref_clks(lmk_freq=122.88, lmx_freq=409.6):
         The frequency for the LMX PLL chip.
 
     """
-    spi_address = find_spi_address()
+    global lmk_address, lmx_address
     
-    read_tics_output()
-    set_LMK_clks(lmk_freq, spi_address[0])
-    set_LMX_clks(lmx_freq, spi_address[1])
-    set_LMX_clks(lmx_freq, spi_address[2])
+    if lmk_address == 'None' and lmx_address == 'None':    
+        _find_spi_address()
+        read_tics_output()
+    
+    for lmk in lmk_address:
+        set_LMK_clks(lmk_freq, lmk)
+    
+    for lmx in lmx_address:
+        set_LMX_clks(lmx_freq, lmx)
 
 
 def read_tics_output():
@@ -199,12 +210,19 @@ def read_tics_output():
     """
     dir_path = os.path.dirname(os.path.realpath(__file__))
     all_txt = glob.glob(os.path.join(dir_path, '*.txt'))
+    
     for s in all_txt:
         chip, freq = s.lower().split('/')[-1].strip('.txt').split('_')
-        config = eval('_{}Config'.format(chip))
-        with open(s, 'r') as f:
-            lines = [l.rstrip("\n") for l in f]
-            for i in lines:
-                m = re.search('[\t]*(0x[0-9A-F]*)', i)
-                config[float(freq)] += int(m.group(1), 16),
+        
+        if chip == lmk_compatible or chip == lmx_compatible: 
+            with open(s, 'r') as f:
+                lines = [l.rstrip("\n") for l in f]
+                
+                registers = []
+                for i in lines:
+                    m = re.search('[\t]*(0x[0-9A-F]*)', i)
+                    registers.append(int(m.group(1), 16),)
+                    
+            _Config[chip][float(freq)] = registers
+                
 

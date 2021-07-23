@@ -50,7 +50,6 @@ num_bytes = 'None'
 lmk_compatible = 'None'
 lmx_compatible = 'None'
 
-
 def write_LMK_regs(reg_vals, spi_address):
 
     """Write values to the LMK registers.
@@ -121,7 +120,7 @@ def set_LMX_clks(LMX_freq, spi_address):
     if LMX_freq not in _Config[lmx_compatible]:
         raise RuntimeError("Frequency {} MHz is not valid.".format(LMX_freq))
     else:
-        write_LMK_regs(_Config[lmx_compatible][LMX_freq], spi_address)
+        write_LMX_regs(_Config[lmx_compatible][LMX_freq], spi_address)
         
 def set_LMK_clks(LMK_freq, spi_address):
     """Set LMK chip frequency.
@@ -149,6 +148,7 @@ def _spidev_bind(dev):
         
 def _find_spi_address():
     global lmk_address, lmx_address, num_bytes, lmk_compatible, lmx_compatible
+    
     lmk = []
     lmx = []
     
@@ -174,6 +174,8 @@ def _find_spi_address():
                        
     lmk_address = lmk
     lmx_address = lmx
+    
+    # Need error statement if lmk/lmx still 'None'
 
 def set_ref_clks(lmk_freq=122.88, lmx_freq=409.6):
     """Set all RF data converter tile reference clocks to a given frequency.
@@ -190,10 +192,10 @@ def set_ref_clks(lmk_freq=122.88, lmx_freq=409.6):
     """
     global lmk_address, lmx_address
     
-    if lmk_address == 'None' and lmx_address == 'None':    
+    if lmk_address == 'None' and lmx_address == 'None':
         _find_spi_address()
         read_tics_output()
-    
+        
     for lmk in lmk_address:
         set_LMK_clks(lmk_freq, lmk)
     
@@ -224,5 +226,3 @@ def read_tics_output():
                     registers.append(int(m.group(1), 16),)
                     
             _Config[chip][float(freq)] = registers
-                
-

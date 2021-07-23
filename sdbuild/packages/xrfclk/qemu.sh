@@ -8,3 +8,9 @@ set -e
 . /etc/environment
 export HOME=/root
 export BOARD=${PYNQ_BOARD}
+
+cd /root/xrfclk_build
+pip3 install .
+
+cd /root
+rm -rf xrfclk_build

@@ -32,7 +32,7 @@ import cffi
 import os
 import pynq
 import warnings
-from wurlitzer import sys_pipes
+from wurlitzer import pipes
 
 
 __author__ = "Peter Ogden"
@@ -54,13 +54,21 @@ _lib = _ffi.dlopen(os.path.join(_THIS_DIR, 'libxrfdc.so'))
 # Next stage is a simple wrapper function which checks the existance of the
 # function in the library and the return code and throws an exception if either
 # fails.
-
+            
 def _safe_wrapper(name, *args, **kwargs):
-    with sys_pipes():
+    with pipes() as (c1, c2):
         if not hasattr(_lib, name):
             raise RuntimeError(f"Function {name} not in library")
-        if getattr(_lib, name)(*args, **kwargs):
-            raise RuntimeError(f"Function {name} call failed")
+        ret = getattr(_lib, name)(*args, **kwargs)
+    if ret:
+        message = f"Function {name} call failed"
+        stdout = c1.read()
+        stderr = c2.read()
+        if stdout:
+            message += f"\nstdout: {stdout}"
+        if stderr:
+            message += f"\nstderr: {stderr}"
+        raise RuntimeError(message)
 
 
 # To reduce the amount of typing we define the properties we want for each

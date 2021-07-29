@@ -54,7 +54,7 @@ _lib = _ffi.dlopen(os.path.join(_THIS_DIR, 'libxrfdc.so'))
 # Next stage is a simple wrapper function which checks the existance of the
 # function in the library and the return code and throws an exception if either
 # fails.
-            
+
 def _safe_wrapper(name, *args, **kwargs):
     with pipes() as (c1, c2):
         if not hasattr(_lib, name):
@@ -84,14 +84,22 @@ _block_props = [
     ("MixerSettings"      , "XRFdc_Mixer_Settings"      , False                     ),
     ("QMCSettings"        , "XRFdc_QMC_Settings"        , False                     ),
     ("CoarseDelaySettings", "XRFdc_CoarseDelay_Settings", False                     ),
-    ("NyquistZone"        , "u32"                       , False                     )
+    ("NyquistZone"        , "u32"                       , False                     ),
+    ("EnabledInterrupts"  , "u32"                       , True                      ),
+    ("PwrMode"            , "XRFdc_Pwr_Mode_Settings"   , False                     )
 ]
 
 _adc_props = [
     ("DecimationFactor"   , "u32"                       , False, False, True , True ),
     ("CalibrationMode"    , "u8"                        , False, False, True , True ),
     ("FabRdVldWords"      , "u32"                       , False, False, False, True ),
-    ("FabWrVldWords"      , "u32"                       , True , False, False, False)
+    ("FabWrVldWords"      , "u32"                       , True , False, False, False),
+    ("DecimationFactorObs", "u32"                       , False, False, True , True ),
+    ("FabRdVldWordsObs"   , "u32"                       , False, False, False, True ),
+    ("FabWrVldWordsObs"   , "u32"                       , True , False, False, False),
+    ("Dither"             , "u32"                       , False, False, True , True ),
+    ("CalFreeze"          , "XRFdc_Cal_Freeze_Settings" , False, False, True , True ),
+    ("DSA"                , "XRFdc_DSA_Settings"        , False, False, True , True )
 ]
 
 _dac_props = [
@@ -100,18 +108,23 @@ _dac_props = [
     ("OutputCurr"         , "int"                       , True , False, True , True ),
     ("InvSincFIR"         , "u16"                       , False, False, True , True ),
     ("FabRdVldWords"      , "u32"                       , True , False, False, False),
-    ("FabWrVldWords"      , "u32"                       , False, False, False, True )
+    ("FabWrVldWords"      , "u32"                       , False, False, False, True ),
+    ("DataPathMode"       , "u32"                       , False, False, True , True ),
+    ("IMRPassMode"        , "u32"                       , False, False, True , True ),
+    ("DACCompMode"        , "u32"                       , False, False, True , True )
 ]
 
 _tile_props = [
     ("FabClkOutDiv"       , "u16"                       , False                     ),
     ("FIFOStatus"         , "u8"                        , True                      ),
     ("ClockSource"        , "u32"                       , True                      ),
-    ("PLLLockStatus"      , "u32"                       , True                      )
+    ("PLLLockStatus"      , "u32"                       , True                      ),
+    ("PLLConfig"          , "XRFdc_PLL_Settings"        , True                      )
 ]
 
 _rfdc_props = [
-    ("IPStatus"           , "XRFdc_IPStatus"            , True                      )
+    ("IPStatus"           , "XRFdc_IPStatus"             , True                      ),
+    ("ClkDistribution"    , "XRFdc_Distribution_Settings", False                     )
 ]
 
 # Next we define some helper functions for creating properties and
@@ -267,6 +280,15 @@ class RFdcBlock:
 
     def UpdateEvent(self, Event):
         self._call_function("UpdateEvent", Event)
+        
+    def ResetInternalFIFOWidth(self):
+        self._call_function("ResetInternalFIFOWidth")
+        
+    def GetConnectedIData(self):
+        self._call_function("GetConnectedIData")
+        
+    def GetConnectedQData(self):
+        self._call_function("GetConnectedQData")
 
 
 class RFdcDacBlock(RFdcBlock):
@@ -275,6 +297,9 @@ class RFdcDacBlock(RFdcBlock):
 
     def _call_function_implicit(self, name, *args):
         return self._parent._call_function_implicit(name, self._index, *args)
+    
+    def SetDACVOP(self, uACurrent):
+        self._call_function_implicit("SetDACVOP", uACurrent)
 
 
 class RFdcAdcBlock(RFdcBlock):
@@ -284,6 +309,19 @@ class RFdcAdcBlock(RFdcBlock):
 
     def _call_function_implicit(self, name, *args):
         return self._parent._call_function_implicit(name, self._index, *args)
+        
+    def DisableCoefficientsOverride(self, CalibrationBlock):
+        self._call_function_implicit("DisableCoefficientsOverride", CalibrationBlock)
+        
+    def ResetInternalFIFOWidthObs(self):
+        self._call_function("ResetInternalFIFOWidthObs")
+        
+    def SetCalCoefficients(self, CalibrationBlock, *CoeffPtr):
+        self._call_function_implicit("SetCalCoefficients", CalibrationBlock, *CoeffPtr)
+        
+    def GetCalCoefficients(self, CalibrationBlock, *CoeffPtr):
+        self._call_function_implicit("GetCalCoefficients", CalibrationBlock, *CoeffPtr)
+
 
 
 class RFdcTile:
@@ -328,6 +366,15 @@ class RFdcAdcTile(RFdcTile):
         super().__init__(*args)
         self._type = _lib.XRFDC_ADC_TILE
         self.blocks = [RFdcAdcBlock(self, i) for i in range(4)]
+        
+    def SetupFIFOObs(self, Enable):
+        self._call_function("SetupFIFOObs", Enable)
+        
+    def SetupFIFOBoth(self, Enable):
+        self._call_function("SetupFIFOBoth", Enable)
+        
+    def GetFIFOStatusObs(self, *EnablePtr):
+        self._call_function("GetFIFOStatusObs", *EnablePtr)
 
 
 class RFdc(pynq.DefaultIP):
@@ -342,8 +389,8 @@ class RFdc(pynq.DefaultIP):
             pass
         else:
             warnings.warn("Please use an hwh file with the RFSoC driver"
-                          " - the default configuration is being used")
-            self._config = _lib.XRFdc_LookupConfig(0)
+                          " the driver cannot be loaded")
+            raise pynq.UnsupportedConfiguration()
         self._instance = _ffi.new("XRFdc*")
         self._config.BaseAddr = self.mmio.array.ctypes.data
         _lib.XRFdc_CfgInitialize(self._instance, self._config)

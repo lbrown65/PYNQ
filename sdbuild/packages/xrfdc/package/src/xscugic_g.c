@@ -40,14 +40,6 @@
 * The configuration table for devices
 */
 
-XScuGic_Config XScuGic_ConfigTable[XPAR_XSCUGIC_NUM_INSTANCES] =
-{
-	{
-		XPAR_PSU_ACPU_GIC_DEVICE_ID,
-		XPAR_PSU_ACPU_GIC_BASEADDR,
-		XPAR_PSU_ACPU_GIC_DIST_BASEADDR,
-		{{0}}		/**< Initialize the HandlerTable to 0 */
-	}
-};
+XScuGic_Config XScuGic_ConfigTable[XPAR_SCUGIC_NUM_INSTANCES] = {};
 
 

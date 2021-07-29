@@ -41,9 +41,9 @@ _DAC_ADP = [
 ]
 
 _DAC_DDP = [
-    ('DataType', 'C_DAC_Data_Type{}{}', 'int'),
+    ('MixerInputDataType', 'C_DAC_Data_Type{}{}', 'int'),
     ('DataWidth', 'C_DAC_Data_Width{}{}', 'int'),
-    ('InterploationMode', 'C_DAC_Interpolation_Mode{}{}', 'int'),
+    ('InterpolationMode', 'C_DAC_Interpolation_Mode{}{}', 'int'),
     ('MixerType', 'C_DAC_Mixer_Type{}{}', 'int')
 ]
 
@@ -53,7 +53,7 @@ _ADC_ADP = [
 ]
 
 _ADC_DDP = [
-    ('DataType', 'C_ADC_Data_Type{}{}', 'int'),
+    ('MixerInputDataType', 'C_ADC_Data_Type{}{}', 'int'),
     ('DataWidth', 'C_ADC_Data_Width{}{}', 'int'),
     ('DecimationMode', 'C_ADC_Decimation_Mode{}{}', 'int'),
     ('MixerType', 'C_ADC_Mixer_Type{}{}', 'int')
@@ -68,7 +68,9 @@ _DAC_Tile = [
     ('FeedbackDiv', 'C_DAC{}_FBDIV', 'int'),
     ('OutputDiv', 'C_DAC{}_OutDiv', 'int'),
     ('RefClkDiv', 'C_DAC{}_Refclk_Div', 'int'),
-    ('MultibandConfig', 'C_DAC{}_Band', 'int')
+    ('MultibandConfig', 'C_DAC{}_Band', 'int'),
+    ('MaxSampleRate', 'C_DAC{}_Fs_Max', 'double'),
+    ('NumSlices', 'C_DAC{}_Slices', 'int')
 ]
 
 _ADC_Tile = [
@@ -80,13 +82,17 @@ _ADC_Tile = [
     ('FeedbackDiv', 'C_ADC{}_FBDIV', 'int'),
     ('OutputDiv', 'C_ADC{}_OutDiv', 'int'),
     ('RefClkDiv', 'C_ADC{}_Refclk_Div', 'int'),
-    ('MultibandConfig', 'C_ADC{}_Band', 'int')
+    ('MultibandConfig', 'C_ADC{}_Band', 'int'),
+    ('MaxSampleRate', 'C_ADC{}_Fs_Max', 'double'),
+    ('NumSlices', 'C_ADC{}_Slices', 'int')
 ]
 
 _Config = [
     ('ADCType', 'C_High_Speed_ADC', 'int'),
     ('ADCSysRefSource', 'C_Sysref_Source', 'int'),
-    ('DACSysRefSource', 'C_Sysref_Source', 'int')
+    ('DACSysRefSource', 'C_Sysref_Source', 'int'),
+    ('IPType', 'C_IP_Type', 'int'),
+    ('SiRevision', 'C_Silicon_Revision', 'int')
 ]
 
 _bool_dict = {

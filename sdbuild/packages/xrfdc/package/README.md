@@ -4,7 +4,7 @@ This is a package implementing the drivers for RF data converter IP.
 
 ## Usage
 
-The class `RFdc` is bound to the IP `xilinx.com:ip:usp_rf_data_converter:2.3`.
+The class `RFdc` is bound to the IP `xilinx.com:ip:usp_rf_data_converter:2.4`.
 Once the overlay is loaded, the data converter IP will be allocated the driver
 code implemented in this class.
 
@@ -133,6 +133,11 @@ calls. You can check `_create_c_property()` for more information.
 Finally we define the object hierarchy. Each element of the object
 hierarchy has a `_call_function` method which handles adding the
 block/tile/toplevel arguments to the list of function parameters.
+
+Some functions are Gen 3 specific. These are clearly labelled in the RFDC user guide. 
+If attempting to use one of these functions on a Gen 1 board, the user will see the error:
+metal: error:     
+ Requested functionality not available for this IP 
 
 Copyright (C) 2021 Xilinx, Inc
 

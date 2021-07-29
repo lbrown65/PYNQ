@@ -56,6 +56,9 @@ void metal_io_init(struct metal_io_region *io, void *virt,
 	io->ops = ops ? *ops : nops;
 }
 
+unsigned int metal_register_generic_device(void* h) { return 0; }
+unsigned int metal_device_open(void* h) { return 0; }
+
 __attribute__((constructor)) void foo(void) {
     printf("library loaded!\n");
     _metal.common.log_level = METAL_LOG_WARNING;

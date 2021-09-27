@@ -40,8 +40,6 @@ __copyright__ = "Copyright 2021, Xilinx"
 __email__ = "pynq_support@xilinx.com"
 
 
-board = os.environ['BOARD']
-
 _Config = defaultdict(dict)
 
 lmk_devices = []

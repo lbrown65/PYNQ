@@ -1,4 +1,4 @@
-#   Copyright (c) 2016, Xilinx, Inc.
+#   Copyright (c) 2021, Xilinx, Inc.
 #   All rights reserved.
 #
 #   Redistribution and use in source and binary forms, with or without
@@ -35,8 +35,9 @@ from copy import deepcopy
 from pynq.ps import CPU_ARCH_IS_SUPPORTED, CPU_ARCH, ZYNQ_ARCH, ZU_ARCH
 
 __author__ = "Yun Rock Qu"
-__copyright__ = "Copyright 2016, Xilinx"
+__copyright__ = "Copyright 2021, Xilinx"
 __email__ = "pynq_support@xilinx.com"
+
 
 def get_hwh_name(bitfile_name):
     """This method returns the name of the hwh file.
@@ -140,7 +141,7 @@ class _HWHABC(metaclass=abc.ABCMeta):
     family_irq = ""
     family_gpio = ""
 
-    def __init__(self, hwh_name):
+    def __init__(self, hwh_name=None, hwh_data=None):
         """Returns a map built from the supplied hwh file
 
         Parameters
@@ -154,7 +155,10 @@ class _HWHABC(metaclass=abc.ABCMeta):
         and return without initialization
 
         """
-        tree = ElementTree.parse(hwh_name)
+        if hwh_name is not None:
+            tree = ElementTree.parse(hwh_name)
+        else:
+            tree = ElementTree.ElementTree(ElementTree.fromstring(hwh_data))
         self.root = tree.getroot()
         self.partial = True
         self.intc_names = []
@@ -174,7 +178,8 @@ class _HWHABC(metaclass=abc.ABCMeta):
             i.get('FULLNAME').lstrip('/'),
             i.get('VLNV'),
             i.findall("./PARAMETERS/*[@NAME][@VALUE]"),
-            i.findall(".//REGISTERS/*[@NAME]"))
+            i.findall(".//REGISTERS/*[@NAME]"),
+            i.get('BDTYPE'))
             for i in self.root.iter("MODULE")}
 
         self.init_partial_ip_dict()
@@ -250,7 +255,7 @@ class _HWHABC(metaclass=abc.ABCMeta):
             The current PS instance under parsing.
 
         """
-        full_name, vlnv, pars, _ = self.instance2attr[mod.get('INSTANCE')]
+        full_name, vlnv, pars, _, _ = self.instance2attr[mod.get('INSTANCE')]
         self.ip_dict[full_name] = {}
         self.ip_dict[full_name]['parameters'] = {j.get('NAME'):
                                                  j.get('VALUE')
@@ -261,22 +266,25 @@ class _HWHABC(metaclass=abc.ABCMeta):
         to_pop = set()
         for i in mod.iter("MEMRANGE"):
             if i.get('INSTANCE') in self.instance2attr:
-                full_name, vlnv, pars, regs = self.instance2attr[
+                full_name, vlnv, pars, regs, bdtype = self.instance2attr[
                     i.get('INSTANCE')]
                 intf_id = i.get(mem_intf_id)
                 if full_name in self.ip_dict and \
                         self.ip_dict[full_name]['mem_id'] and intf_id:
-                    rename = full_name + '/' + self.ip_dict[full_name]['mem_id']
+                    rename = full_name + '/' + \
+                        self.ip_dict[full_name]['mem_id']
                     self.ip_dict[rename] = deepcopy(self.ip_dict[full_name])
                     self.ip_dict[rename]['fullpath'] = rename
                     to_pop.add(full_name)
                     full_name += '/' + intf_id
-                elif vlnv.split(':')[:2] == ['xilinx.com', 'module_ref']:
+                elif vlnv.split(':')[:2] == ['xilinx.com', 'module_ref'] and \
+                        bdtype:
                     full_name += '/' + intf_id
 
                 self.ip_dict[full_name] = {}
                 self.ip_dict[full_name]['fullpath'] = full_name
                 self.ip_dict[full_name]['type'] = vlnv
+                self.ip_dict[full_name]['bdtype'] = bdtype
                 self.ip_dict[full_name]['state'] = None
                 high_addr = int(i.get('HIGHVALUE'), 16)
                 base_addr = int(i.get('BASEVALUE'), 16)
@@ -284,6 +292,7 @@ class _HWHABC(metaclass=abc.ABCMeta):
                 self.ip_dict[full_name]['addr_range'] = addr_range
                 self.ip_dict[full_name]['phys_addr'] = base_addr
                 self.ip_dict[full_name]['mem_id'] = intf_id
+                self.ip_dict[full_name]['memtype'] = i.get('MEMTYPE', None)
                 self.ip_dict[full_name]['gpio'] = {}
                 self.ip_dict[full_name]['interrupts'] = {}
                 self.ip_dict[full_name]['parameters'] = {j.get('NAME'):
@@ -388,15 +397,12 @@ class _HWHABC(metaclass=abc.ABCMeta):
         For now we will add a single entry for the PS
 
         """
-        from pynq.xlnk import Xlnk
-        self.mem_dict[self.ps_name] = {
-            'raw_type': None,
-            'used': 1,
-            'base_address': 0,
-            'size': Xlnk.cma_mem_size(None),
-            'type': 'PSDDR',
-            'streaming': False
-        }
+        for k, v in list(self.ip_dict.items()):
+            if v.get('memtype', None) == 'MEMORY':
+                self.mem_dict[k] = v
+                v['used'] = 1
+                del self.ip_dict[k]
+
 
     def _add_interrupt_pins(self, net, parent, offset, raw_map=None):
         net_pins = self.nets[net] if net else set()
@@ -465,8 +471,9 @@ class _HWHABC(metaclass=abc.ABCMeta):
         """Initialize the hierarchical dictionary.
 
         """
+        objects = list(self.ip_dict.keys()) + list(self.mem_dict.keys())
         lasthierarchies = {}
-        hierarchies = {k.rpartition('/')[0] for k in self.ip_dict.keys()
+        hierarchies = {k.rpartition('/')[0] for k in objects
                        if k.count('/') > 0}
         while lasthierarchies != hierarchies:
             parents = {k.rpartition('/')[0] for k in hierarchies
@@ -486,6 +493,11 @@ class _HWHABC(metaclass=abc.ABCMeta):
             hier, _, ip = name.rpartition('/')
             if hier:
                 self.hierarchy_dict[hier]['ip'][ip] = val
+
+        for name, val in self.mem_dict.items():
+            hier, _, mem = name.rpartition('/')
+            if hier:
+                self.hierarchy_dict[hier]['memories'][mem] = val
 
         for name, val in self.hierarchy_dict.items():
             hier, _, subhier = name.rpartition('/')
@@ -641,4 +653,3 @@ elif CPU_ARCH == ZYNQ_ARCH:
     HWH = _HWHZynq
 else:
     HWH = _HWHABC
-

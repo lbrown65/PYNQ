@@ -33,6 +33,7 @@ __copyright__ = "Copyright 2019-2021, Xilinx"
 __email__ = "pynq_support@xilinx.com"
 
 import ctypes
+import itertools
 from copy import deepcopy
 from xml.etree import ElementTree
 from pynq._3rdparty import xclbin
@@ -115,7 +116,8 @@ def _xclxml_to_ip_dict(raw_xml, xclbin_uuid):
                 'bit_width': 1,
                 'description': 'Invoke next iteration of kernel'
             }
-        elif control_protocol == 'ap_ctrl_none':
+        elif control_protocol == 'ap_ctrl_none' or \
+                control_protocol == 'user_managed':
             registers = {}
         streams = {}
         for arg in kernel.findall('arg'):
@@ -138,30 +140,37 @@ def _xclxml_to_ip_dict(raw_xml, xclbin_uuid):
                     direction = 'output'
                 else:
                     raise RuntimeError('Could not determine port direction')
+                sid = attrib.get('id')
                 streams[attrib['name']] = {
-                    'id': int(attrib['id']),
-                    'type': attrib['type'],
+                    'id': int(sid) if sid else None,
+                    'type': attrib.get('type'),
                     'direction': direction
                 }
         for instance in kernel.findall('instance'):
-            ip_dict[instance.attrib['name']] = {
-                'phys_addr': int(instance.find('addrRemap').attrib['base'], 0),
-                'addr_range': addr_size,
-                'type': kernel.attrib['vlnv'],
-                'hw_control_protocol' : control_protocol,
-                'fullpath': instance.attrib['name'],
-                'registers': deepcopy(registers),
-                'streams': deepcopy(streams),
-                'mem_id': None,
-                'state': None,
-                'interrupts': {},
-                'gpio': {},
-                'xclbin_uuid': xclbin_uuid,
-                'cu_name' : ":".join((kernel.attrib['vlnv'].split(':')[2],
-                    instance.attrib['name']))
-            }
+            try:
+                phys_addr = int(instance.find('addrRemap').attrib['base'], 0)
+            except ValueError:
+                phys_addr = None
+
+            if phys_addr:
+                ip_dict[instance.attrib['name']] = {
+                    'phys_addr': phys_addr,
+                    'addr_range': addr_size,
+                    'type': kernel.attrib['vlnv'],
+                    'hw_control_protocol': control_protocol,
+                    'fullpath': instance.attrib['name'],
+                    'registers': deepcopy(registers),
+                    'streams': deepcopy(streams),
+                    'mem_id': None,
+                    'state': None,
+                    'interrupts': {},
+                    'gpio': {},
+                    'xclbin_uuid': xclbin_uuid,
+                    'cu_name': ":".join((kernel.attrib['vlnv'].split(':')[2],
+                                         instance.attrib['name']))
+                }
     for i, d in enumerate(sorted(ip_dict.values(),
-        key=lambda x: x['phys_addr'])): d['cu_index'] = i
+                          key=lambda x: x['phys_addr'])): d['cu_index'] = i
     return {k: v for k, v in sorted(ip_dict.items())}
 
 
@@ -184,7 +193,7 @@ def _add_argument_memory(ip_dict, ip_data, connections, memories):
             # Subtract 1 from the register index to account for AP_CTRL
             if (ip_index, r['id']) in connection_dict:
                 r['memory'] = \
-                    memories[connection_dict[(ip_index, r['id'])]].decode()
+                    memories[connection_dict[(ip_index, r['id'])]]
         for r in dict_entry['streams'].values():
             if (ip_index, r['id']) in connection_dict:
                 r['stream_id'] = connection_dict[(ip_index, r['id'])]
@@ -199,7 +208,7 @@ def _get_object_as_array(obj, number):
     return ctype.from_address(ctypes.addressof(obj))
 
 
-def _mem_data_to_dict(idx, mem):
+def _mem_data_to_dict(idx, mem, tag):
     if mem.m_type == 9:
         # Streaming Endpoint
         return {
@@ -209,7 +218,8 @@ def _mem_data_to_dict(idx, mem):
             "route_id": mem.mem_u1.route_id,
             "type": _mem_types[mem.m_type],
             "streaming": True,
-            "idx": idx
+            "idx": idx,
+            "tag": tag
         }
     else:
         return {
@@ -219,9 +229,9 @@ def _mem_data_to_dict(idx, mem):
             "size": mem.mem_u1.m_size * 1024,
             "type": _mem_types[mem.m_type],
             "streaming": False,
-            "idx": idx
+            "idx": idx,
+            "tag": tag
         }
-
 
 
 _clock_types = [
@@ -230,34 +240,29 @@ _clock_types = [
     "KERNEL",
     "SYSTEM"
 ]
-    
+
+
 def _clk_data_to_dict(clk_data):
-    """ Create a dictionary of dictionaries 
-    for the clock data. The clocks will be 
-    sorted depending on the clock type.
+    """Create a dictionary of dictionaries for the clock data.
+    The clocks will be sorted depending on the clock type.
     """
-    # Create empty dictionary and initialise index
+
     clk_dict = {}
     idx = 0
-    # Iterate over the different clock types
     for i in _clock_types:
-        # Iterate over clock data
         for j, clk in enumerate(clk_data):
             clk_i = {
-                "name"      : clk.m_name.decode("utf-8"),
-                "frequency" : clk.m_freq_Mhz,
-                "type"      : _clock_types[clk.m_type]}
-            # Add entry to dictionary only if clock type matches and increment index
+                "name": clk.m_name.decode("utf-8"),
+                "frequency": clk.m_freq_Mhz,
+                "type": _clock_types[clk.m_type]}
             if _clock_types[clk.m_type] is i:
                 clk_dict['clock'+str(idx)] = clk_i
                 idx += 1
 
     return clk_dict
 
-
-def _xclbin_to_dicts(filename):
-    with open(filename, 'rb') as f:
-        binfile = bytearray(f.read())
+def parse_xclbin_header(xclbin_data):
+    binfile = bytearray(xclbin_data)
     header = xclbin.axlf.from_buffer(binfile)
     section_headers = _get_object_as_array(
         header.m_sections, header.m_header.m_numSections)
@@ -265,41 +270,64 @@ def _xclbin_to_dicts(filename):
         s.m_sectionKind: _get_buffer_slice(
             binfile, s.m_sectionOffset, s.m_sectionSize)
         for s in section_headers}
+    return sections, bytes(header.m_header.u2.uuid).hex()
 
-    xclbin_uuid = bytes(header.m_header.u2.uuid).hex()
+
+def _xclbin_to_dicts(filename, xclbin_data=None):
+    if xclbin_data is None:
+         with open(filename, 'rb') as f:
+             xclbin_data = bytearray(f.read())
+    sections, xclbin_uuid = parse_xclbin_header(xclbin_data)
 
     ip_dict = _xclxml_to_ip_dict(
         sections[xclbin.AXLF_SECTION_KIND.EMBEDDED_METADATA].decode(),
         xclbin_uuid)
-    ip_layout = xclbin.ip_layout.from_buffer(
-        sections[xclbin.AXLF_SECTION_KIND.IP_LAYOUT])
-    ip_data = _get_object_as_array(ip_layout.m_ip_data[0], ip_layout.m_count)
 
-    if xclbin.AXLF_SECTION_KIND.CONNECTIVITY in sections:
+    if xclbin.AXLF_SECTION_KIND.IP_LAYOUT in sections:
+        ip_layout = xclbin.ip_layout.from_buffer(
+            sections[xclbin.AXLF_SECTION_KIND.IP_LAYOUT])
+        ip_data = _get_object_as_array(ip_layout.m_ip_data[0], ip_layout.m_count)
+    else:
+        ip_data = []
+
+    if xclbin.AXLF_SECTION_KIND.GROUP_CONNECTIVITY in sections:
         connectivity = xclbin.connectivity.from_buffer(
-            sections[xclbin.AXLF_SECTION_KIND.CONNECTIVITY])
+            sections[xclbin.AXLF_SECTION_KIND.GROUP_CONNECTIVITY])
         connections = _get_object_as_array(connectivity.m_connection[0],
                                            connectivity.m_count)
+    elif xclbin.AXLF_SECTION_KIND.CONNECTIVITY in sections:
+        connectivity = xclbin.connectivity.from_buffer(
+            sections[xclbin.AXLF_SECTION_KIND.GROUP_CONNECTIVITY])
+        connections = _get_object_as_array(connectivity.m_connection[0],
+                                           connectivity.m_count)
+    else:
+        connections = []
 
+    if xclbin.AXLF_SECTION_KIND.GROUP_TOPOLOGY in sections:
+        mem_topology = xclbin.mem_topology.from_buffer(
+            sections[xclbin.AXLF_SECTION_KIND.GROUP_TOPOLOGY])
+        mem_data = _get_object_as_array(mem_topology.m_mem_data[0],
+                                        mem_topology.m_count)
+    elif xclbin.AXLF_SECTION_KIND.MEM_TOPOLOGY in sections:
         mem_topology = xclbin.mem_topology.from_buffer(
             sections[xclbin.AXLF_SECTION_KIND.MEM_TOPOLOGY])
         mem_data = _get_object_as_array(mem_topology.m_mem_data[0],
                                         mem_topology.m_count)
-        memories = {i: ctypes.string_at(m.m_tag) \
-                    for i, m in enumerate(mem_data)}
-        mem_dict = {memories[i].decode(): _mem_data_to_dict(i, mem)
-                    for i, mem in enumerate(mem_data)}
-        _add_argument_memory(ip_dict, ip_data, connections, memories)
     else:
-        mem_dict = {}
+        mem_data = []
+
+    memories = [ctypes.string_at(m.m_tag).decode() for m in mem_data]
+    mem_dict = {tag: _mem_data_to_dict(i, mem, tag)
+                for i, tag, mem in zip(itertools.count(), memories, mem_data)}
+    _add_argument_memory(ip_dict, ip_data, connections, memories)
     
     if xclbin.AXLF_SECTION_KIND.CLOCK_FREQ_TOPOLOGY in sections:
         clock_topology = xclbin.clock_freq_topology.from_buffer(
               sections[xclbin.AXLF_SECTION_KIND.CLOCK_FREQ_TOPOLOGY])
-           
+
         clk_data = _get_object_as_array(clock_topology.m_clock_freq[0],
-                           clock_topology.m_count)
-                   
+                                        clock_topology.m_count)
+
         clock_dict = _clk_data_to_dict(clk_data)
     else:
         clock_dict = {}
@@ -338,8 +366,9 @@ class XclBin:
         {str: {'name' : str, 'frequency' : int, 'type' : str}}.
 
     """
-    def __init__(self, filename):
-        self.ip_dict, self.mem_dict, self.clock_dict = _xclbin_to_dicts(filename)
+    def __init__(self, filename="", xclbin_data=None):
+        self.ip_dict, self.mem_dict, self.clock_dict = \
+            _xclbin_to_dicts(filename, xclbin_data)
         self.gpio_dict = {}
         self.interrupt_controllers = {}
         self.interrupt_pins = {}

@@ -43,7 +43,6 @@ import subprocess
 import os
 import warnings
 from datetime import datetime
-from pynq.utils import download_overlays
 
 
 # Requirement
@@ -128,7 +127,8 @@ extend_pynq_package(['pynq/lib/pynqmicroblaze',
                      'pynq/lib/arduino',
                      'pynq/lib/pmod',
                      'pynq/lib/rpi',
-                     'pynq/lib/logictools'])
+                     'pynq/lib/logictools',
+                     'pynq/pl_server/default.xclbin'])
 
 
 # Video source files
@@ -216,6 +216,7 @@ def copy_board_notebooks(staging_notebooks_dir, board):
 
 # Copy notebooks in boards/BOARD/OVERLAY/notebooks
 def copy_overlay_notebooks(staging_notebooks_dir, board):
+    from pynq.utils import download_overlays
     board_folder = 'boards/{}'.format(board)
     download_overlays(board_folder, fail_at_lookup=True, cleanup=True)
     overlay_dirs = find_overlays(board_folder)

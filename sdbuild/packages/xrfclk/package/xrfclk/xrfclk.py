@@ -39,6 +39,7 @@ __author__ = "Yun Rock Qu, Lewis Brown"
 __copyright__ = "Copyright 2021, Xilinx"
 __email__ = "pynq_support@xilinx.com"
 
+board = os.environ['BOARD']
 
 _Config = defaultdict(dict)
 

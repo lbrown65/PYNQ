@@ -75,8 +75,7 @@ class AxiGPIO(DefaultIP):
             """
             return (self._parent.read() >> self._start) & self._mask
 
-        @asyncio.coroutine
-        def wait_for_value_async(self, value):
+        async def wait_for_value_async(self, value):
             """Coroutine that waits until the specified value is read
 
             This function relies on interrupts being available for the IP
@@ -84,7 +83,7 @@ class AxiGPIO(DefaultIP):
 
             """
             while self.read() != value:
-                yield from self._parent.wait_for_interrupt_async()
+                await self._parent.wait_for_interrupt_async()
 
         def wait_for_value(self, value):
             """Wait until the specified value is read
@@ -153,9 +152,9 @@ class AxiGPIO(DefaultIP):
             """Toggles all of the wires in the slice
 
             """
-            self.write((~self._parent.val >> self._start) & self._mask)
+            self.write((~self._parent._val >> self._start) & self._mask)
 
-    class InOut(Output, Input):
+    class InOut(Input, Output):
         """Class representing wires in an inout channel.
 
         This class should be passed to `setdirection` to indicate the
@@ -214,7 +213,7 @@ class AxiGPIO(DefaultIP):
             self._channel = channel
             self.slicetype = AxiGPIO.InOut
             self.length = 32
-            self.val = 0
+            self._val = 0
             self._waiter_count = 0
 
         def __getitem__(self, idx):
@@ -234,18 +233,22 @@ class AxiGPIO(DefaultIP):
             """Set the state of the output pins
 
             """
-            self.val = (self.val & ~mask) | (val & mask)
-            self._parent.write(self._channel * 8, self.val)
+            if self.slicetype == AxiGPIO.Input:
+                raise RuntimeError('You cannot write to an Input')
+            self._val = (self._val & ~mask) | (val & mask)
+            self._parent.write(self._channel * 8, self._val)
 
         def read(self):
             """Read the state of the input pins
 
             """
+            if self.slicetype == AxiGPIO.Output:
+                raise RuntimeError('You cannot read from an output')
             return self._parent.read(self._channel * 8)
 
         @property
         def trimask(self):
-            """Gets or sets the tri-state mask for an inout channel
+            """Gets or sets the tristate mask for an inout channel
 
             """
             return self._parent.read(self._channel * 8 + 4)
@@ -276,8 +279,7 @@ class AxiGPIO(DefaultIP):
                     "or the string 'in', 'out' or 'inout'")
             self.slicetype = direction
 
-        @asyncio.coroutine
-        def wait_for_interrupt_async(self):
+        async def wait_for_interrupt_async(self):
             """Wait for the interrupt on the channel to be signalled
 
             This is intended to be used by slices waiting for a particular
@@ -296,7 +298,7 @@ class AxiGPIO(DefaultIP):
 
             self._waiter_count += 1
 
-            yield from self._parent.ip2intc_irpt.wait()
+            await self._parent.ip2intc_irpt.wait()
             if self._parent.read(0x120) & mask:
                 self._parent.write(0x120, mask)
 
@@ -331,6 +333,9 @@ class AxiGPIO(DefaultIP):
         'in', 'out' or 'inout'
 
         """
+        if type(direction) is str:
+            if direction in _direction_map:
+                direction = _direction_map[direction]
         if direction not in [AxiGPIO.Input, AxiGPIO.Output, AxiGPIO.InOut]:
             raise ValueError(
                 "direction should be one of AxiGPIO.{Input,Output,InOut}")
@@ -341,6 +346,7 @@ class AxiGPIO(DefaultIP):
 
     bindto = ['xilinx.com:ip:axi_gpio:2.0']
 
-_direction_map = { "in": AxiGPIO.Input,
-                   "out": AxiGPIO.Output,
-                   "inout": AxiGPIO.InOut }
+
+_direction_map = {"in": AxiGPIO.Input,
+                  "out": AxiGPIO.Output,
+                  "inout": AxiGPIO.InOut}
